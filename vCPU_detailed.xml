@@ -216,6 +216,15 @@ search_count_daily_avg &gt; 1000000,"100")
   </fieldset>
   <row>
     <panel>
+      <html>
+        <pre>
+          30 days leading up to date; 
+          Signle Value: Last 30 days MAX(vCPU) - index VPU, SH VCPU, ingest - datetime modifier
+          Currently used vCPU (Sparkline)
+        </pre>
+      </html>
+    </panel>
+    <panel>
       <title>Current vCPU</title>
       <single>
         <title>Currently used vCPU (out of 472)</title>
@@ -325,6 +334,7 @@ search_count_daily_avg &gt; 1000000,"100")
             background: linear-gradient( -60deg,#f91cf880,#ee1d62 90%,#f4781f 97%,#f16221 97%,#f05a22 97%,#ee1d62 97%,#ed008082 97%) !important;
             font-family: Verdana;
             font-weight: bolder;
+            color: white;
           }
           .dashboard-row .dashboard-panel .panel-head h3 {
              background: #ffa50012;
