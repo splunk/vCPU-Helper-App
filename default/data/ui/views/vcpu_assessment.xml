@@ -66,6 +66,7 @@ All information is provided at your own risk. All data collected is classfied se
         <choice value="p90">p90</choice>
         <choice value="p95">p95</choice>
         <choice value="p99">p99</choice>
+        <choice value="max">max</choice>
         <default>p99</default>
       </input>
       <table>

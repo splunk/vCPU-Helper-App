@@ -1,0 +1,20 @@
+<nav >
+  <view name="apps" default="true" />
+  <view name="uploaded_apps" />
+</nav>
+
+
+<nav search_view="search" color="#5CC05C">
+  <view name="search" default='true' />
+  <view name="analytics_workspace" />
+  <view name="datasets" />
+  <view name="reports" />
+  <view name="alerts" />
+  <view name="dashboards" />
+   <!-- Dynamically list all available dashboards-->
+    <collection label="All dashboards">
+        <view source="all" />
+    </collection>
+    <a href="https://github.com/splunk/vCPU-Helper-App/tree/main" target="_blank">Github repo</a>
+
+</nav>
