@@ -1,9 +1,3 @@
-<nav >
-  <view name="apps" default="true" />
-  <view name="uploaded_apps" />
-</nav>
-
-
 <nav search_view="search" color="#5CC05C">
 
   <view name="vCPU_Current" default="true" />
