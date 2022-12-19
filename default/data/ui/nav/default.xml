@@ -1,6 +1,7 @@
 <nav search_view="search" color="#5CC05C">
 
-  <view name="vCPU_Landing" default="true" />
+  
+  <view name="vCPU_Landing_inline" default="true" />
   <view name="vCPU_Current" />
   <view name="vCPU_detailed" />
 
@@ -12,6 +13,7 @@
     <a href="https://github.com/splunk/vCPU-Helper-App/tree/main" target="_blank">Github repo</a>
     <collection label="Other">
         <view name="search" default='true' />
+        <view name="vCPU_Landing" />
         <view name="analytics_workspace" />
         <view name="datasets" />
         <view name="reports" />
