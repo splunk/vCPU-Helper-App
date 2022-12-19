@@ -1,50 +1,83 @@
-<dashboard>
-  <label>vCPU Overview</label>
-  <description>vCPU Overview</description>
+<form version="1.1">
+  <label>vCPU_dashboard</label>
+  <search id="baseSearch">
+    <query>
+      index=_introspection earliest=-90d component=Hostwide
+[|inputlookup dmc_assets
+ | table serverName as host, search_group
+ | search search_group=*dmc_group_index* OR search_group=*dmc_group_search_head*
+ | table host ]
+ | eval cpu_util = ('data.cpu_user_pct' + 'data.cpu_system_pct')
+| bin _time span=5m
+| table _time host data.cpu_count data.virtual_cpu_count data.cpu_idle_pct data.cpu_idle_pct cpu_util
+```5-min Roll-Up```
+| stats max(data.cpu_count) AS physical_cores, max(data.virtual_cpu_count) AS numberOfVirtualCores,
+max(cpu_util) as CPU_util_pct_max
+by _time host
+| eval max_5minCPUsUsed = CPU_util_pct_max*numberOfVirtualCores/100
+| stats values(host) as host_list dc(host) as total_hosts sum(physical_cores) as physical_cores sum(numberOfVirtualCores) as numberOfVirtualCores
+sum(max_5minCPUsUsed) as max_5minCPUsUsed
+by _time
+```24h Roll-Up```
+| bin _time span=1d
+| stats values(host_list) as host_list max(total_hosts) as total_hosts max(physical_cores) as physical_cores max(numberOfVirtualCores) as numberOfVirtualCores
+p90(max_5minCPUsUsed) as p90Daily_5minMax_CPUsUsed
+by _time
+    </query>
+  </search>
+  <fieldset submitButton="false">
+    <input type="dropdown" token="days" searchWhenChanged="true">
+      <label>Days For Linechart and Table</label>
+      <choice value="-30d">30 Days</choice>
+      <choice value="-90d">90 Days</choice>
+      <choice value="-7d">7 days</choice>
+      <default>-7d</default>
+    </input>
+  </fieldset>
   <row>
     <panel>
-      <title>vCPU Overview</title>
-      <table>
-        <search>
-          <query>index=_introspection earliest=-30d component=Hostwide 
-[| makeresults count=1
- | table serverName as host, search_group 
- | search search_group=*dmc_group_index* OR search_group=*dmc_group_search_head* 
- | table host ] 
- | eval cpu_util = ('data.cpu_user_pct' + 'data.cpu_system_pct') 
-| bin _time span=5m 
-| table _time host data.cpu_count data.virtual_cpu_count data.cpu_idle_pct data.cpu_idle_pct cpu_util 
-```5-min Roll-Up``` 
-| stats max(data.cpu_count) AS physical_cores, max(data.virtual_cpu_count) AS numberOfVirtualCores, 
-max(cpu_util) as CPU_util_pct_max 
-by _time host 
-| eval max_5minCPUsUsed = CPU_util_pct_max*numberOfVirtualCores/100 
-| stats values(host) as host_list dc(host) as total_hosts sum(physical_cores) as physical_cores sum(numberOfVirtualCores) as numberOfVirtualCores 
-sum(max_5minCPUsUsed) as max_5minCPUsUsed 
-by _time 
-```24h Roll-Up```  
-| bin _time span=1d 
-| stats values(host_list) as host_list max(total_hosts) as total_hosts max(physical_cores) as physical_cores max(numberOfVirtualCores) as numberOfVirtualCores 
-p90(max_5minCPUsUsed) as p90Daily_5minMax_CPUsUsed 
-by _time 
-```Month Roll-Up``` 
-| appendpipe [ 
-| stats max(total_hosts) as total_hosts, max(physical_cores) as physical_cores, max(numberOfVirtualCores) as numberOfVirtualCores,  
-p90(p90Daily_5minMax_CPUsUsed) as p90Daily_5minMax_CPUsUsed 
-| eval _time="90th Perc. across report duration (equivalent to 3 days out of 30)"] 
-| eval p90Daily_5minMax_CPUsUsed=round(p90Daily_5minMax_CPUsUsed,2)</query>
-          <earliest>-24h@h</earliest>
-          <latest>now</latest>
-          <sampleRatio>1</sampleRatio>
-        </search>
-        <option name="count">100</option>
-        <option name="dataOverlayMode">none</option>
+      <single>
+        <title>vCPU in active use for 1 day</title>
+        <search ref="vCPU in active use for 1 day"></search>
         <option name="drilldown">none</option>
-        <option name="percentagesRow">false</option>
-        <option name="rowNumbers">false</option>
-        <option name="totalsRow">false</option>
-        <option name="wrap">true</option>
+        <option name="refresh.display">progressbar</option>
+      </single>
+    </panel>
+    <panel>
+      <single>
+        <title>vCPU in active use for 30 days</title>
+        <search ref="vCPU in active use for 30 days"></search>
+        <option name="drilldown">none</option>
+        <option name="refresh.display">progressbar</option>
+      </single>
+    </panel>
+    <panel>
+      <single>
+        <title>vCPU in active use for 90 days</title>
+        <search ref="vCPU in active use for 90 days"></search>
+        <option name="drilldown">none</option>
+      </single>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <title>vCPU in active use each day last $days$ days</title>
+      <chart>
+        <search ref="vCPU in active use - Last X days"></search>
+        <option name="charting.chart">line</option>
+        <option name="charting.drilldown">none</option>
+        <option name="refresh.display">progressbar</option>
+      </chart>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <table>
+        <title>Daily Metrics for $days$</title>
+        <search base="baseSearch" ref="Daily Metrics for -7d"></search>
+        <option name="drilldown">none</option>
+        <option name="refresh.display">progressbar</option>
       </table>
     </panel>
   </row>
-</dashboard>
+</form>
