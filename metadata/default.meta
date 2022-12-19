@@ -33,3 +33,76 @@ export = system
 [viewstates]
 access = read : [ * ], write : [ * ]
 export = system
+
+
+### Saved Searches
+
+[savedsearches/vCPU%20-%20Last%201%20Day]
+access = read : [ * ], write : [ admin ]
+export = none
+owner = admin
+version = 9.0.1
+modtime = 1671481005.562883000
+
+[savedsearches/vCPU%20-%20Last%2030%20days]
+access = read : [ * ], write : [ admin ]
+export = none
+owner = admin
+version = 9.0.1
+modtime = 1671481128.484777000
+
+[savedsearches/vCPU%20-%20Last%2090%20days]
+access = read : [ * ], write : [ admin ]
+export = none
+owner = admin
+version = 9.0.1
+modtime = 1671481218.301063000
+
+[savedsearches/vCPU%20-%20Last%207%20days]
+access = read : [ * ], write : [ admin ]
+export = none
+owner = admin
+version = 9.0.1
+modtime = 1671481277.522381000
+
+[savedsearches/vCPU%20-%20Daily%20-%20Last%207%20Days]
+access = read : [ * ], write : [ admin ]
+export = none
+owner = admin
+version = 9.0.1
+modtime = 1671481307.296103000
+
+[savedsearches/Daily%20Metrics%20for%20%24days%24]
+access = read : [ * ], write : [ admin ]
+export = none
+owner = admin
+version = 9.0.1
+modtime = 1671481561.629896000
+
+[savedsearches/vCPU%20in%20active%20use%20-%20Last%20X%20days]
+access = read : [ * ], write : [ * ]
+export = none
+owner = admin
+version = 9.0.1
+modtime = 1671481573.459208000
+
+[savedsearches/vCPU%20in%20active%20use%20for%2030%20days]
+access = read : [ * ], write : [ * ]
+export = none
+owner = admin
+version = 9.0.1
+modtime = 1671481579.959516000
+
+[savedsearches/vCPU%20in%20active%20use%20for%2090%20days]
+access = read : [ * ], write : [ * ]
+export = none
+owner = admin
+version = 9.0.1
+modtime = 1671481586.203647000
+
+[savedsearches/vCPU%20in%20active%20use%20for%201%20day]
+access = read : [ * ], write : [ * ]
+export = none
+owner = admin
+version = 9.0.1
+modtime = 1671481599.655732000
