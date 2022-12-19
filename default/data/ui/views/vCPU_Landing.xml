@@ -1,5 +1,5 @@
 <form version="1.1">
-  <label>vCPU_dashboard</label>
+  <label>vCPU Landing Page</label>
   <search id="baseSearch">
     <query>
       index=_introspection earliest=-90d component=Hostwide
