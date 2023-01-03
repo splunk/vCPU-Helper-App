@@ -54,7 +54,7 @@ $base_search$
           $base_search$    
           [ $dmc_assets$ ]
           | where _time &gt; relative_time(now(), "-1d")
-          $table$
+         ``` $table$ ```
           $trailing_search_1$
           $trailing_search_2$
           </query>
