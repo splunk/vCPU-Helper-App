@@ -1,4 +1,4 @@
-<form hideFilters="false" hideEdit="false">
+<form hideFilters="false" hideEdit="false" version="1.1">
   <label>vCPU Landing Page</label>
   <init>// | where _time &gt; relative_time(now(), "-10y")<!-- We recommend that you convert introspection into report, alternative query would look as this. i.e. -->
     <set token="base_search">index=_introspection component=Hostwide earliest=-90d</set>
@@ -54,7 +54,6 @@ $base_search$
           $base_search$    
           [ $dmc_assets$ ]
           | where _time &gt; relative_time(now(), "-1d")
-         ``` $table$ ```
           $trailing_search_1$
           $trailing_search_2$
           </query>
