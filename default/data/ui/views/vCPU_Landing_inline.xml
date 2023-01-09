@@ -1,7 +1,7 @@
 <form hideFilters="false" hideEdit="false" version="1.1">
-  <label>vCPU Landing Page</label>
+  <label>vCPU Audit Dashboard</label>
   <init>// | where _time &gt; relative_time(now(), "-10y")<!-- We recommend that you convert introspection into report, alternative query would look as this. i.e. -->
-    <set token="base_search">index=_introspection component=Hostwide earliest=-90d</set>
+    <set token="base_search">index=_introspection component=Hostwide</set>
     <set token="dmc_assets">|inputlookup dmc_assets
  | table serverName as host, search_group
  | search search_group=*dmc_group_index* OR search_group=*dmc_group_search_head*
@@ -31,7 +31,7 @@ by _time</set>
   </init>
   <search id="baseSearch">
     <query>
-$base_search$
+$base_search$  earliest=$days$
 [ $dmc_assets$ ]
  $trailing_search_1$
     </query>
@@ -39,9 +39,9 @@ $base_search$
   <fieldset submitButton="false">
     <input type="dropdown" token="days" searchWhenChanged="true">
       <label>Days For Linechart and Table</label>
+      <choice value="-7d">7 days</choice>
       <choice value="-30d">30 Days</choice>
       <choice value="-90d">90 Days</choice>
-      <choice value="-7d">7 days</choice>
       <default>-7d</default>
     </input>
   </fieldset>
@@ -51,7 +51,7 @@ $base_search$
         <title>vCPU in active use for 1 day</title>
         <search>
           <query>
-          $base_search$    
+          $base_search$     earliest=-1d
           [ $dmc_assets$ ]
           | where _time &gt; relative_time(now(), "-1d")
           $trailing_search_1$
@@ -67,7 +67,7 @@ $base_search$
         <title>vCPU in active use for 30 days</title>
         <search>
           <query>
-          $base_search$
+          $base_search$ earliest=-30d
           [ $dmc_assets$ ]
           | where _time &gt; relative_time(now(), "-30d")
           $trailing_search_1$
@@ -86,7 +86,7 @@ $base_search$
         <title>vCPU in active use for 90 days</title>
         <search>
           <query>
-            $base_search$
+            $base_search$ earliest=-90d
             [ $dmc_assets$ ]
             | where _time &gt; relative_time(now(), "-90d")
             $trailing_search_1$
@@ -102,9 +102,8 @@ $base_search$
       <chart>
         <search>
           <query>
-            $base_search$
+            $base_search$ earliest=$days$
             [ $dmc_assets$ ]
-            | where _time &gt; relative_time(now(), "-30d")
 | eval cpu_util = ('data.cpu_user_pct' + 'data.cpu_system_pct') 
 | bin _time span=5m
 | table _time host data.cpu_count data.virtual_cpu_count data.cpu_idle_pct data.cpu_idle_pct cpu_util
@@ -137,7 +136,8 @@ by _time
         <title>Daily Metrics for $days$</title>
         <search base="baseSearch">
           <query>| table _time total_hosts physical_cores numberOfVirtualCores p90Daily_5minMax_CPUsUsed
-| sort - _time</query>
+          | sort - _time
+          | rename _time as Time, total_hosts as "Total Hosts", physical_cores as "Physical Cores", numberOfVirtualCores as "Total Allocated vCPUs"</query>
         </search>
         <option name="drilldown">none</option>
         <option name="refresh.display">progressbar</option>
