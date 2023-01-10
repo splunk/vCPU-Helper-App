@@ -52,6 +52,7 @@ $base_search$  earliest=$days$
         <search>
           <query>| rest splunk_server=* /services/licenser/pools  ```license/total vCPU```
 | search stack_id=enterprise
+| search description=auto_generated_pool_fixed-sourcetype*
 | eval "vCPUs Licensed" = effective_quota/1024/1024/1024| table "vCPUs Licensed"
       | appendcols [ | rest splunk_server_group=* splunk_server_group="*" /services/server/status/resource-usage/hostwide
       | lookup dmc_assets serverName AS splunk_server OUTPUT search_group
