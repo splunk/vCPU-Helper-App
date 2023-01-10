@@ -48,6 +48,39 @@ $base_search$  earliest=$days$
   <row>
     <panel>
       <single>
+        <title>License  and Total vCPU</title>
+        <search>
+          <query>| rest splunk_server=* /services/licenser/pools  ```license/total vCPU```
+| search stack_id=enterprise
+| eval "vCPUs Licensed" = effective_quota/1024/1024/1024| table "vCPUs Licensed"
+      | appendcols [ | rest splunk_server_group=* splunk_server_group="*" /services/server/status/resource-usage/hostwide
+      | lookup dmc_assets serverName AS splunk_server OUTPUT search_group
+      | where (search_group="dmc_group_indexer" OR search_group="dmc_group_search_head")
+      | join type=outer splunk_server [
+          | `dmc_get_instance_roles` 
+          | fields role serverName
+          | rename serverName as splunk_server]
+      | eval normalized_load_avg_1min = if(isnull(normalized_load_avg_1min), "N/A", normalized_load_avg_1min)
+      | eval core_info = if(isnull(cpu_count), "N/A", cpu_count)." / ".if(isnull(virtual_cpu_count), "N/A", virtual_cpu_count)
+      | eval cpu_usage = 'cpu_system_pct' + 'cpu_user_pct'
+      | fields splunk_server, role, normalized_load_avg_1min, core_info, cpu_usage, cpu_count, virtual_cpu_count, cpu_system_pct, cpu_user_pct
+      | eval role = replace(role, " $$", "")
+      | eval role = split(role, " ") | stats sum(virtual_cpu_count) as "Total vCPU"
+        ]
+        
+        | eval summary='vCPUs Licensed' + " / " + 'Total vCPU'
+        | fields summary</query>
+          <earliest>-24h@h</earliest>
+          <latest>now</latest>
+          <sampleRatio>1</sampleRatio>
+        </search>
+        <option name="drilldown">none</option>
+        <option name="rangeColors">["0x53a051","0x0877a6","0xf8be34","0xf1813f","0xdc4e41"]</option>
+        <option name="underLabel">License / Total vCPU</option>
+      </single>
+    </panel>
+    <panel>
+      <single>
         <title>vCPU in active use for 1 day</title>
         <search>
           <query>
