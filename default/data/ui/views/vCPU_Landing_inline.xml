@@ -44,6 +44,10 @@ $base_search$  earliest=$days$
       <choice value="-90d">90 Days</choice>
       <default>-7d</default>
     </input>
+    <input type="text" token="license" searchWhenChanged="true">
+      <label>vCPU License</label>
+      <default>1000</default>
+    </input>
   </fieldset>
   <row>
     <panel>
@@ -52,8 +56,8 @@ $base_search$  earliest=$days$
         <search>
           <query>| rest splunk_server=* /services/licenser/pools  ```license/total vCPU```
 | search stack_id=enterprise
-```| search description=auto_generated_pool_fixed-sourcetype*```
-| eval "vCPUs Licensed" = effective_quota/1024/1024/1024| table "vCPUs Licensed"
+| eval "vCPUs Licensed" = effective_quota/1024/1024/1024| stats sum("vCPUs Licensed") as "vCPUs Licensed"
+| eval "vCPUs Licensed" = $license$
       | appendcols [ | rest splunk_server_group=* splunk_server_group="*" /services/server/status/resource-usage/hostwide
       | lookup dmc_assets serverName AS splunk_server OUTPUT search_group
       | where (search_group="dmc_group_indexer" OR search_group="dmc_group_search_head")
@@ -68,7 +72,6 @@ $base_search$  earliest=$days$
       | eval role = replace(role, " $$", "")
       | eval role = split(role, " ") | stats sum(virtual_cpu_count) as "Total vCPU"
         ]
-        
         | eval summary='vCPUs Licensed' + " / " + 'Total vCPU'
         | fields summary</query>
           <earliest>-24h@h</earliest>
@@ -159,20 +162,19 @@ by _time
 numberOfVirtualCores
 p90(max_5minCPUsUsed) as p90Daily_5minMax_CPUsUsed
 by _time
-| timechart latest(p90Daily_5minMax_CPUsUsed) as p90Daily_5minMax_CPUsUsed span=1d
-  | appendcols [ | rest splunk_server=* /services/licenser/pools  ```license/total vCPU```
-| search stack_id=enterprise
-```| search description=auto_generated_pool_fixed-sourcetype*```
-| eval "vCPUs Licensed" = effective_quota/1024/1024/1024| table "vCPUs Licensed"]
-| eventstats list("vCPUs Licensed") as "vCPUs Licensed"</query>
+
+| timechart latest(p90Daily_5minMax_CPUsUsed) as p90Daily_5minMax_CPUsUsed  span=1d
+| eval License=$license$</query>
           <earliest>$earliest$</earliest>
           <latest>$latest$</latest>
         </search>
-        <option name="charting.axisTitleX.visibility">visible</option>
-        <option name="charting.axisTitleY.visibility">visible</option>
-        <option name="charting.chart">line</option>
+        <option name="charting.axisY2.enabled">0</option>
+        <option name="charting.axisY2.maximumNumber">1000</option>
+        <option name="charting.axisY2.scale">linear</option>
+        <option name="charting.chart">column</option>
+        <option name="charting.chart.overlayFields">License Limit</option>
+        <option name="charting.chart.showDataLabels">none</option>
         <option name="charting.drilldown">none</option>
-        <option name="charting.legend.placement">bottom</option>
         <option name="refresh.display">progressbar</option>
       </chart>
     </panel>
