@@ -1,6 +1,26 @@
-<nav search_view="search">
+<nav search_view="search" color="#5CC05C">
   <view name="vcpu_audit_dashboard__prod" default='true'/>
   <view name="dashboards" />
   <view name="reports" />
   <view name="search" />
+
+<!-- Dynamically list all available dashboards-->
+    <collection label="All reports + dashboards">
+        <saved source="all" />
+        <view source="all" />
+    </collection>
+    <a href="https://github.com/splunk/vCPU-Helper-App/tree/main" target="_blank">Github repo</a>
+    <collection label="Other">
+        <!-- <view name="search" />
+        <view name="vCPU_Landing" /> -->
+        <!-- <view name="vCPU_Landing_inline" default="true" />
+        <view name="vCPU_Current" />
+        <view name="vCPU_detailed" /> -->
+        <view name="analytics_workspace" />
+        <view name="datasets" />
+        <view name="reports" />
+        <view name="alerts" />
+        <view name="dashboards" />
+    </collection>
+
 </nav>

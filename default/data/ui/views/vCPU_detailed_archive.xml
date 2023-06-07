@@ -1,0 +1,399 @@
+<form>
+  <label>Archive - vCPU Helper - Detailed</label>
+  <description>reference guide to get estimates on current and projected vCPU usage.</description>
+  <init>
+    <set token="debug">true</set>
+    <!--
+      <set token="all_solutions">| makeresults count=1 | eval AppCode="4607", AppID="mltk-container", Comments="comment", Name="mltk-container", Notes="mltk-container", Team="IT/O11y", Windmill="", WithProducts="" | table * </set>
+    -->
+    <!-- 
+    <set token="all_solutions">| inputlookup Windmill_All_Splunkbase_Apps</set>
+    
+    Splunkbase-cloud-accounts-22-07-hashed.csv
+    
+    -->
+    <!-- <set token="all_solutions">| inputlookup windmill_all_splunkbase_v2.csv</set> -->
+    <!-- all_hosts_list = SH + IDX -->
+    <set token="all_hosts_list">index=_internal  earliest=-1d latest=now() | stats count by splunk_server | rename splunk_server as server ```idx```
+| append   [ search index=_internal sourcetype=scheduler | stats count by host | rename host as server  ```sh``` ]
+| rename server as host
+| table host</set>
+    <set token="idx_hosts_list">index=_internal  earliest=-1d latest=now() | stats count by splunk_server | rename splunk_server as host ```idx``` | table host</set>
+    <set token="sh_hosts_list">index=_internal sourcetype=scheduler | stats count by host   ```sh```  | table host</set>
+  </init>
+  <!--
+  <row>
+    <panel>
+      <title>Information for SH/SHC and Indexers</title>
+      <table>
+        <search>
+          <query>index=_introspection earliest=-30d component=Hostwide
+[ $sh_hosts_list$ ]
+| eval cpu_util = ('data.cpu_user_pct' + 'data.cpu_system_pct') 
+| bin _time span=5m
+| table _time host data.cpu_count data.virtual_cpu_count data.cpu_idle_pct data.cpu_idle_pct cpu_util
+```5-min Roll-Up```
+| stats max(data.cpu_count) AS physical_cores, max(data.virtual_cpu_count) AS numberOfVirtualCores, max(cpu_util) as CPU_util_pct_max by _time host
+| eval max_5minCPUsUsed = CPU_util_pct_max*numberOfVirtualCores/100
+| stats values(host) as host_list dc(host) as total_hosts sum(physical_cores) as physical_cores sum(numberOfVirtualCores) as numberOfVirtualCores sum(max_5minCPUsUsed) as max_5minCPUsUsed by _time
+```24h Roll-Up```
+| bin _time span=1d
+| stats values(host_list) as host_list max(total_hosts) as total_hosts max(physical_cores) as physical_cores max(numberOfVirtualCores) as numberOfVirtualCores p90(max_5minCPUsUsed) as p90Daily_5minMax_CPUsUsed by _time
+```Month Roll-Up```
+| appendpipe [
+| stats max(total_hosts) as total_hosts, max(physical_cores) as physical_cores, max(numberOfVirtualCores) as numberOfVirtualCores, p90(p90Daily_5minMax_CPUsUsed) as p90Daily_5minMax_CPUsUsed
+| eval _time="90th Perc. across report duration (equivalent to 3 days out of 30)"]
+| eval p90Daily_5minMax_CPUsUsed=round(p90Daily_5minMax_CPUsUsed,2)</query>
+          <earliest>-24h@h</earliest>
+          <latest>now</latest>
+          <sampleRatio>1</sampleRatio>
+        </search>
+        <option name="count">20</option>
+        <option name="dataOverlayMode">none</option>
+        <option name="drilldown">none</option>
+        <option name="percentagesRow">false</option>
+        <option name="rowNumbers">false</option>
+        <option name="totalsRow">false</option>
+        <option name="wrap">true</option>
+      </table>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <title>Information for SH/SHC</title>
+      <table>
+        <search>
+          <query>index=_introspection earliest=-30d component=Hostwide
+[|inputlookup dmc_assets 
+ | table serverName as host, search_group 
+ | search search_group=*dmc_group_search_head* 
+ | table host ]
+| eval cpu_util = ('data.cpu_user_pct' + 'data.cpu_system_pct') 
+| bin _time span=5m
+| table _time host data.cpu_count data.virtual_cpu_count data.cpu_idle_pct data.cpu_idle_pct cpu_util
+```5-min Roll-Up```
+| stats max(data.cpu_count) AS physical_cores, max(data.virtual_cpu_count) AS numberOfVirtualCores, max(cpu_util) as CPU_util_pct_max by _time host
+| eval max_5minCPUsUsed = CPU_util_pct_max*numberOfVirtualCores/100
+| stats values(host) as host_list dc(host) as total_hosts sum(physical_cores) as physical_cores sum(numberOfVirtualCores) as numberOfVirtualCores sum(max_5minCPUsUsed) as max_5minCPUsUsed by _time
+```24h Roll-Up```
+| bin _time span=1d
+| stats values(host_list) as host_list max(total_hosts) as total_hosts max(physical_cores) as physical_cores max(numberOfVirtualCores) as numberOfVirtualCores p90(max_5minCPUsUsed) as p90Daily_5minMax_CPUsUsed by _time
+```Month Roll-Up```
+| appendpipe [
+| stats max(total_hosts) as total_hosts, max(physical_cores) as physical_cores, max(numberOfVirtualCores) as numberOfVirtualCores, p90(p90Daily_5minMax_CPUsUsed) as p90Daily_5minMax_CPUsUsed
+| eval _time="90th Perc. across report duration (equivalent to 3 days out of 30)"]
+| eval p90Daily_5minMax_CPUsUsed=round(p90Daily_5minMax_CPUsUsed,2)</query>
+          <earliest>-24h@h</earliest>
+          <latest>now</latest>
+          <sampleRatio>1</sampleRatio>
+        </search>
+        <option name="count">20</option>
+        <option name="dataOverlayMode">none</option>
+        <option name="drilldown">none</option>
+        <option name="percentagesRow">false</option>
+        <option name="rowNumbers">false</option>
+        <option name="totalsRow">false</option>
+        <option name="wrap">true</option>
+      </table>
+    </panel>
+    <panel>
+      <title>Information for Indexers</title>
+      <table>
+        <search>
+          <query>index=_introspection earliest=-30d component=Hostwide
+[ $idx_hosts_list$ ]
+| eval cpu_util = ('data.cpu_user_pct' + 'data.cpu_system_pct') 
+| bin _time span=5m
+| table _time host data.cpu_count data.virtual_cpu_count data.cpu_idle_pct data.cpu_idle_pct cpu_util
+```5-min Roll-Up```
+| stats max(data.cpu_count) AS physical_cores, max(data.virtual_cpu_count) AS numberOfVirtualCores, max(cpu_util) as CPU_util_pct_max by _time host
+| eval max_5minCPUsUsed = CPU_util_pct_max*numberOfVirtualCores/100
+| stats values(host) as host_list dc(host) as total_hosts sum(physical_cores) as physical_cores sum(numberOfVirtualCores) as numberOfVirtualCores sum(max_5minCPUsUsed) as max_5minCPUsUsed by _time
+```24h Roll-Up```
+| bin _time span=1d
+| stats values(host_list) as host_list max(total_hosts) as total_hosts max(physical_cores) as physical_cores max(numberOfVirtualCores) as numberOfVirtualCores p90(max_5minCPUsUsed) as p90Daily_5minMax_CPUsUsed by _time
+```Month Roll-Up```
+| appendpipe [
+| stats max(total_hosts) as total_hosts, max(physical_cores) as physical_cores, max(numberOfVirtualCores) as numberOfVirtualCores, p90(p90Daily_5minMax_CPUsUsed) as p90Daily_5minMax_CPUsUsed
+| eval _time="90th Perc. across report duration (equivalent to 3 days out of 30)"]
+| eval p90Daily_5minMax_CPUsUsed=round(p90Daily_5minMax_CPUsUsed,2)</query>
+          <earliest>-24h@h</earliest>
+          <latest>now</latest>
+          <sampleRatio>1</sampleRatio>
+        </search>
+        <option name="count">20</option>
+        <option name="dataOverlayMode">none</option>
+        <option name="drilldown">none</option>
+        <option name="percentagesRow">false</option>
+        <option name="rowNumbers">false</option>
+        <option name="totalsRow">false</option>
+        <option name="wrap">true</option>
+      </table>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <title>Get Concurrent Searches per day (using 30-days).</title>
+      <table>
+        <search>
+          <query>```Get Concurrent Searches per day (using 30-days).  Get the workload factor and use DSG to get SVC information. 
+```
+index=_audit search_id!="'rsa_*" search_id!="'RemoteStorageRetrieveBuckets_*" search_id!="'searchparsetmp_*" search_id!="'remote_*" search_id=* total_run_time earliest=-30d@d latest=@d
+| eval host_sid = 'host'.":".'search_id'
+| bin _time span=1d
+| stats dc(host_sid) AS search_count by _time
+| stats avg(search_count) AS search_count_daily_avg
+| eval workload_factor=case(search_count_daily_avg &lt;= 1000,"20",
+search_count_daily_avg &gt; 1000 AND search_count_daily_avg &lt;= 10000,"25",
+search_count_daily_avg &gt; 10000 AND search_count_daily_avg &lt;= 50000,"35",
+search_count_daily_avg &gt; 50000 AND search_count_daily_avg &lt;= 100000,"45",
+search_count_daily_avg &gt; 100000 AND search_count_daily_avg &lt;= 200000,"55",
+search_count_daily_avg &gt; 200000 AND search_count_daily_avg &lt;= 300000,"65",
+search_count_daily_avg &gt; 300000 AND search_count_daily_avg &lt;= 500000,"75",
+search_count_daily_avg &gt; 500000 AND search_count_daily_avg &lt;= 1000000,"90",
+search_count_daily_avg &gt; 1000000,"100")
+| eval search_count_daily_avg=round(search_count_daily_avg,0)</query>
+          <earliest>-24h@h</earliest>
+          <latest>now</latest>
+          <sampleRatio>1</sampleRatio>
+        </search>
+        <option name="count">20</option>
+        <option name="dataOverlayMode">none</option>
+        <option name="drilldown">none</option>
+        <option name="percentagesRow">false</option>
+        <option name="rowNumbers">false</option>
+        <option name="totalsRow">false</option>
+        <option name="wrap">true</option>
+      </table>
+    </panel>
+  </row>
+  
+  -->
+  <fieldset submitButton="true" autoRun="false">
+    <input type="text" token="data_ingest_gb">
+      <label>Data Ingest per day (GB)</label>
+      <default>11.4</default>
+    </input>
+    <input type="dropdown" token="sh_cpu" searchWhenChanged="true">
+      <label>Per Search Head: CPU Core</label>
+      <choice value="4">4</choice>
+      <choice value="8">8</choice>
+      <choice value="12">12</choice>
+      <choice value="16">16</choice>
+      <choice value="24">24</choice>
+      <choice value="48">48</choice>
+      <choice value="64">64</choice>
+      <choice value="72">72</choice>
+      <choice value="128">128</choice>
+      <fieldForLabel>numberOfVirtualCores</fieldForLabel>
+      <fieldForValue>numberOfVirtualCores</fieldForValue>
+      <search>
+        <query>| rest splunk_server=* /services/server/info
+| fields serverName, numberOfCores, numberOfVirtualCores, physicalMemoryMB
+| rename numberOfCores as numberOfPhysicalCores
+| eval physicalMemoryGB = round(physicalMemoryMB/1024)
+| table serverName, numberOfPhysicalCores, numberOfVirtualCores, physicalMemoryGB
+| table numberOfVirtualCores physicalMemoryGB</query>
+      </search>
+    </input>
+    <input type="text" token="sh_mem">
+      <label>Search Head: Memory</label>
+      <default>64</default>
+    </input>
+    <input type="text" token="idx_cpu">
+      <label>Indexer: CPU Cores</label>
+      <default>24</default>
+    </input>
+    <input type="text" token="idx_mem">
+      <label>Indexer: Memory</label>
+      <default>64</default>
+    </input>
+    <input type="multiselect" token="premium_apps">
+      <label>Premium Apps</label>
+      <choice value="ES">Enterprise Security (SIEM)</choice>
+      <choice value="ITSI">IT Service Intelligence (ITSI)</choice>
+    </input>
+  </fieldset>
+  <row>
+    <panel>
+      <html>
+        <pre>
+          30 days leading up to date; 
+          Signle Value: Last 30 days MAX(vCPU) - index VPU, SH VCPU, ingest - datetime modifier
+          Currently used vCPU (Sparkline)
+        </pre>
+      </html>
+    </panel>
+    <panel>
+      <title>Current vCPU</title>
+      <single>
+        <title>Currently used vCPU (out of 472)</title>
+        <search>
+          <query>| makeresults count=1 | eval vCPU="98" | table vCPU</query>
+          <earliest>-24h@h</earliest>
+          <latest>now</latest>
+        </search>
+        <option name="drilldown">none</option>
+        <option name="refresh.display">progressbar</option>
+      </single>
+    </panel>
+    <panel>
+      <single>
+        <title>Calculated vCPU</title>
+        <search>
+          <query>| makeresults count=1 | eval vCPU=tonumber("98")+$sh_cpu$ | table vCPU</query>
+          <earliest>-24h@h</earliest>
+          <latest>now</latest>
+        </search>
+        <option name="drilldown">none</option>
+        <option name="refresh.display">progressbar</option>
+      </single>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <title>Determine vCPU usage with current ingestion (variable)</title>
+      <table>
+        <search>
+          <query>```Determine vCPU usage with current ingestion
+    Verify vCPU usage based on ranges of ingestion.
+    Exclude weekends in the Search if applicable. 
+
+==&gt; Compute for Workload Factor = Daily_Volume_GB / p90Daily_5minMax_CPUsUsed.
+
+    Modify the query: 
+| eval date_wday=strftime(_time,"%w") 
+| where date_wday&gt;0 AND date_wday&lt;6
+
+    ```
+  
+  
+  index=_introspection earliest=-30d component=Hostwide
+[ search index=_internal  earliest=-1d latest=now() | stats count by splunk_server | rename splunk_server as server ```idx```
+| append   [ search index=_internal sourcetype=scheduler | stats count by host | rename host as server  ```sh``` ]
+| rename server as host
+| table host]
+
+| eval cpu_util = ('data.cpu_user_pct' + 'data.cpu_system_pct') 
+| bin _time span=5m
+| table _time host data.cpu_count data.virtual_cpu_count data.cpu_idle_pct data.cpu_idle_pct cpu_util
+```5-min Roll-Up```
+| stats max(data.cpu_count) AS physical_cores, max(data.virtual_cpu_count) AS numberOfVirtualCores, max(cpu_util) as CPU_util_pct_max by _time host
+| eval max_5minCPUsUsed = CPU_util_pct_max*numberOfVirtualCores/100
+| stats values(host) as host_list dc(host) as total_hosts sum(physical_cores) as physical_cores sum(numberOfVirtualCores) as numberOfVirtualCores sum(max_5minCPUsUsed) as max_5minCPUsUsed by _time
+
+ ```24h Roll-Up``` 
+| bin _time span=1d 
+| stats values(host_list) as host_list max(total_hosts) as total_hosts max(physical_cores) as physical_cores max(numberOfVirtualCores) as numberOfVirtualCores p90(max_5minCPUsUsed) as p90Daily_5minMax_CPUsUsed by _time
+    ```Month Roll-Up``` 
+| convert ctime(_time) AS workload_time 
+| appendpipe 
+    [| stats max(total_hosts) as total_hosts, max(physical_cores) as physical_cores, max(numberOfVirtualCores) as numberOfVirtualCores, p90(p90Daily_5minMax_CPUsUsed) as p90Daily_5minMax_CPUsUsed] 
+| eval p90Daily_5minMax_CPUsUsed=round(p90Daily_5minMax_CPUsUsed,2) 
+| join workload_time 
+    [ search index=_internal source=*license_usage.log* type="RolloverSummary" earliest=-30d@d latest=@d 
+    | dedup _raw 
+    | bin span=1d _time 
+    | stats sum(b) AS daily_volume_gb by _time 
+    | eval daily_volume_gb = round(daily_volume_gb/1024/1024/1024,2) 
+    | convert ctime(_time) AS workload_time 
+    | table workload_time daily_volume_gb] 
+    
+    | eval workload_factor = daily_volume_gb / p90Daily_5minMax_CPUsUsed
+| table workload_time daily_volume_gb p90Daily_5minMax_CPUsUsed numberOfVirtualCores physical_cores total_hosts workload_factor</query>
+          <earliest>-24h@h</earliest>
+          <latest>now</latest>
+          <sampleRatio>1</sampleRatio>
+        </search>
+        <option name="count">20</option>
+        <option name="dataOverlayMode">none</option>
+        <option name="drilldown">none</option>
+        <option name="percentagesRow">false</option>
+        <option name="refresh.display">progressbar</option>
+        <option name="rowNumbers">false</option>
+        <option name="totalsRow">false</option>
+        <option name="wrap">true</option>
+      </table>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <html>
+        <style>
+          /* linear-gradient( -60deg,#f91cf880,#ee1d62 90%,#f4781f 97%,#f16221 97%,#f05a22 97%,#ee1d62 97%,#ed008082 97%) !important */
+
+
+          .fieldset .input {
+              width: 220px;
+              background: #80808036;
+              color: #e81456; /* orange */
+              border-radius: 10px;
+              padding: 6px;
+          }
+          .panel-title{
+            background: linear-gradient( -60deg,#f91cf880,#ee1d62 90%,#f4781f 97%,#f16221 97%,#f05a22 97%,#ee1d62 97%,#ed008082 97%) !important;
+            font-family: Verdana;
+            font-weight: bolder;
+            color: white;
+          }
+          .dashboard-row .dashboard-panel .panel-head h3 {
+             background: #ffa50012;
+          }
+          .dashboard-row .dashboard-panel .error-details i {
+            color: #f8be3445;
+          }
+        </style>
+      <hr/>
+    </html>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <title>numberOfPhysicalCores, numberOfVirtualCores, physicalMemoryGB</title>
+      <table>
+        <search>
+          <query>| rest splunk_server=* /services/server/info
+| fields serverName, numberOfCores, numberOfVirtualCores, physicalMemoryMB
+| rename numberOfCores as numberOfPhysicalCores
+| eval physicalMemoryGB = round(physicalMemoryMB/1024)
+| table serverName, numberOfPhysicalCores, numberOfVirtualCores, physicalMemoryGB</query>
+          <earliest>-30m@m</earliest>
+          <latest>now</latest>
+          <sampleRatio>1</sampleRatio>
+        </search>
+        <option name="count">20</option>
+        <option name="dataOverlayMode">none</option>
+        <option name="drilldown">none</option>
+        <option name="percentagesRow">false</option>
+        <option name="rowNumbers">false</option>
+        <option name="totalsRow">false</option>
+        <option name="wrap">true</option>
+      </table>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <title>IOPS</title>
+      <table>
+        <search ref="vCPU - IOPS"></search>
+        <option name="drilldown">none</option>
+      </table>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <title>Daily Ingest</title>
+      <table>
+        <search ref="vCPU - Daily Indexing Volume"></search>
+        <option name="drilldown">none</option>
+      </table>
+    </panel>
+    <panel>
+      <title>Daily Search Count</title>
+      <table>
+        <search ref="Daily Search Count"></search>
+        <option name="drilldown">none</option>
+      </table>
+    </panel>
+  </row>
+</form>
