@@ -1,7 +1,7 @@
-<form hideFilters="false" hideEdit="false" version="1.1" theme="dark">
-  <label>vCPU Audit Dashboard</label>
+<form version="1.1" hideFilters="false" hideEdit="false">
+  <label>vCPU Landing Page</label>
   <init>// | where _time &gt; relative_time(now(), "-10y")<!-- We recommend that you convert introspection into report, alternative query would look as this. i.e. -->
-    <set token="base_search">index=_introspection component=Hostwide</set>
+    <!-- <set token="base_search">index=_introspection component=Hostwide earliest=-90d</set> -->
     <set token="dmc_assets">|inputlookup dmc_assets
  | table serverName as host, search_group
  | search search_group=*dmc_group_index* OR search_group=*dmc_group_search_head*
@@ -31,7 +31,7 @@ by _time</set>
   </init>
   <search id="baseSearch">
     <query>
-$base_search$  earliest=$days$
+$base_search$
 [ $dmc_assets$ ]
  $trailing_search_1$
     </query>
@@ -39,76 +39,42 @@ $base_search$  earliest=$days$
   <fieldset submitButton="false">
     <input type="dropdown" token="days" searchWhenChanged="true">
       <label>Days For Linechart and Table</label>
-      <choice value="-7d">7 days</choice>
       <choice value="-30d">30 Days</choice>
       <choice value="-90d">90 Days</choice>
+      <choice value="-7d">7 days</choice>
       <default>-7d</default>
-    </input>
-    <input type="text" token="license" searchWhenChanged="true">
-      <label>vCPU License</label>
-      <default>1000</default>
     </input>
   </fieldset>
   <row>
     <panel>
       <single>
-        <title>License  and Total vCPU</title>
+        <title>vCPU in active use for 1 day</title>
         <search>
-          <query>| rest splunk_server=* /services/licenser/pools  ```license/total vCPU```
-| search stack_id=enterprise
-| eval "vCPUs Licensed" = effective_quota/1024/1024/1024| stats sum("vCPUs Licensed") as "vCPUs Licensed"
-| eval "vCPUs Licensed" = $license$
-      | appendcols [ | rest splunk_server_group=* splunk_server_group="*" /services/server/status/resource-usage/hostwide
-      | lookup dmc_assets serverName AS splunk_server OUTPUT search_group
-      | where (search_group="dmc_group_indexer" OR search_group="dmc_group_search_head")
-      | join type=outer splunk_server [
-          | `dmc_get_instance_roles` 
-          | fields role serverName
-          | rename serverName as splunk_server]
-      | eval normalized_load_avg_1min = if(isnull(normalized_load_avg_1min), "N/A", normalized_load_avg_1min)
-      | eval core_info = if(isnull(cpu_count), "N/A", cpu_count)." / ".if(isnull(virtual_cpu_count), "N/A", virtual_cpu_count)
-      | eval cpu_usage = 'cpu_system_pct' + 'cpu_user_pct'
-      | fields splunk_server, role, normalized_load_avg_1min, core_info, cpu_usage, cpu_count, virtual_cpu_count, cpu_system_pct, cpu_user_pct
-      | eval role = replace(role, " $$", "")
-      | eval role = split(role, " ") | stats sum(virtual_cpu_count) as "Total vCPU"
-        ]
-        | eval summary='vCPUs Licensed' + " / " + 'Total vCPU'
-        | fields summary</query>
-          <earliest>-24h@h</earliest>
-          <latest>now</latest>
-          <sampleRatio>1</sampleRatio>
-        </search>
-        <option name="drilldown">none</option>
-        <option name="rangeColors">["0x53a051","0x0877a6","0xf8be34","0xf1813f","0xdc4e41"]</option>
-        <option name="refresh.display">progressbar</option>
-        <option name="underLabel">License / Total vCPU</option>
-        <option name="useColors">0</option>
-      </single>
-    </panel>
-    <panel>
-      <single>
-        <title>vCPU usage in last 24 hours</title>
-        <search>
-          <query>$base_search$     earliest=-1@d
+          <query>
+            <!--
+            $base_search$    
           [ $dmc_assets$ ]
           | where _time &gt; relative_time(now(), "-1d")
+
           $trailing_search_1$
-          $trailing_search_2$</query>
+          $trailing_search_2$ 
+          -->
+          index=`vcpu_index` source=introspection_1d | head 1 | table p90Daily_5minMax_CPUsUsed
+          </query>
           <earliest>$earliest$</earliest>
           <latest>$latest$</latest>
         </search>
         <option name="drilldown">none</option>
-        <option name="rangeColors">["0x53a051","0x0877a6","0xf8be34","0xf1813f","0xdc4e41"]</option>
         <option name="refresh.display">progressbar</option>
-        <option name="useColors">0</option>
       </single>
     </panel>
     <panel>
       <single>
-        <title>vCPU usage for 30 days</title>
+        <title>vCPU in active use for 30 days</title>
         <search>
           <query>
-          $base_search$ earliest=-30d
+            <!--
+          $base_search$
           [ $dmc_assets$ ]
           | where _time &gt; relative_time(now(), "-30d")
           $trailing_search_1$
@@ -116,7 +82,10 @@ $base_search$  earliest=$days$
             | stats max(total_hosts) as total_hosts, max(physical_cores) as physical_cores, max(numberOfVirtualCores) as numberOfVirtualCores, p99(p90Daily_5minMax_CPUsUsed) as p90Daily_5minMax_CPUsUsed
             | eval _time="90th Perc. across report duration (equivalent to 3 days out of 30)"]
             | eval p90Daily_5minMax_CPUsUsed=round(p90Daily_5minMax_CPUsUsed,2)
-            | stats latest(p90Daily_5minMax_CPUsUsed) as p90Daily_5minMax_CPUsUsed</query>
+            | stats latest(p90Daily_5minMax_CPUsUsed) as p90Daily_5minMax_CPUsUsed-->
+            
+            index=`vcpu_index` source=introspection_30d | head 1 | table p90Daily_5minMax_CPUsUsed
+            </query>
         </search>
         <option name="drilldown">none</option>
         <option name="refresh.display">progressbar</option>
@@ -124,26 +93,34 @@ $base_search$  earliest=$days$
     </panel>
     <panel>
       <single>
-        <title>vCPU usage for 90 days</title>
+        <title>vCPU in active use for 90 days</title>
         <search>
-          <query>
-            $base_search$ earliest=-90d
+          <!--
+          <query>$base_search$
             [ $dmc_assets$ ]
             | where _time &gt; relative_time(now(), "-90d")
             $trailing_search_1$
             $trailing_search_2$</query>
+            -->
+            <query>
+            index=`vcpu_index` source=introspection_90d | head 1 | table p90Daily_5minMax_CPUsUsed</query>
+          <earliest>$earliest$</earliest>
+          <latest>$latest$</latest>
         </search>
         <option name="drilldown">none</option>
+        <option name="refresh.display">progressbar</option>
       </single>
     </panel>
   </row>
   <row>
     <panel>
-      <title>vCPU usage for the each day last $days$ days</title>
+      <title>vCPU in active use each day last $days$ days</title>
       <chart>
         <search>
-          <query>$base_search$ earliest=$days$
+          <query><!--
+            $base_search$
             [ $dmc_assets$ ]
+            | where _time &gt; relative_time(now(), "-30d")
 | eval cpu_util = ('data.cpu_user_pct' + 'data.cpu_system_pct') 
 | bin _time span=5m
 | table _time host data.cpu_count data.virtual_cpu_count data.cpu_idle_pct data.cpu_idle_pct cpu_util
@@ -162,18 +139,12 @@ by _time
 numberOfVirtualCores
 p90(max_5minCPUsUsed) as p90Daily_5minMax_CPUsUsed
 by _time
-
-| timechart latest(p90Daily_5minMax_CPUsUsed) as p90Daily_5minMax_CPUsUsed  span=1d
-| eval License=$license$</query>
-          <earliest>$earliest$</earliest>
-          <latest>$latest$</latest>
+| timechart latest(p90Daily_5minMax_CPUsUsed) as p90Daily_5minMax_CPUsUsed span=1d
+-->
+index=`vcpu_index` source=daily_metrics | table _time p90Daily_5minMax_CPUsUsed
+</query>
         </search>
-        <option name="charting.axisY2.enabled">0</option>
-        <option name="charting.axisY2.maximumNumber">1000</option>
-        <option name="charting.axisY2.scale">linear</option>
-        <option name="charting.chart">column</option>
-        <option name="charting.chart.overlayFields">License Limit</option>
-        <option name="charting.chart.showDataLabels">none</option>
+        <option name="charting.chart">line</option>
         <option name="charting.drilldown">none</option>
         <option name="refresh.display">progressbar</option>
       </chart>
@@ -183,11 +154,16 @@ by _time
     <panel>
       <table>
         <title>Daily Metrics for $days$</title>
+        <!--
         <search base="baseSearch">
           <query>| table _time total_hosts physical_cores numberOfVirtualCores p90Daily_5minMax_CPUsUsed
-          | sort - _time
-          | rename  total_hosts as "Total Hosts", physical_cores as "Physical Cores", numberOfVirtualCores as "Total Allocated vCPUs"</query>
+| sort - _time</query>
         </search>
+        -->
+        
+        <search><query>index=`vcpu_index` source=daily_metrics_table  | dedup _time | table _time total_hosts physical_cores numberOfVirtualCores p90Daily_5minMax_CPUsUsed</query></search>
+        
+        
         <option name="drilldown">none</option>
         <option name="refresh.display">progressbar</option>
       </table>

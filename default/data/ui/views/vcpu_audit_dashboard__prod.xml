@@ -1,0 +1,228 @@
+<form hideFilters="false" hideEdit="false" version="1.1" theme="dark">
+  <label>vCPU Audit Dashboard - PROD</label>
+  <init>// | where _time &gt; relative_time(now(), "-10y")<!-- We recommend that you convert introspection into report, alternative query would look as this. i.e. -->
+    <set token="base_search">index=_introspection component=Hostwide</set>
+    <set token="dmc_assets">|inputlookup dmc_assets
+ | table serverName as host, search_group
+ | search search_group=*dmc_group_index* OR search_group=*dmc_group_search_head*
+ | table host</set>
+    <set token="trailing_search_1">| eval cpu_util = ('data.cpu_user_pct' + 'data.cpu_system_pct')
+| bin _time span=5m
+| table _time host data.cpu_count data.virtual_cpu_count data.cpu_idle_pct data.cpu_idle_pct cpu_util
+```5-min Roll-Up```
+| stats max(data.cpu_count) AS physical_cores, max(data.virtual_cpu_count) AS numberOfVirtualCores,
+max(cpu_util) as CPU_util_pct_max
+by _time host
+| eval max_5minCPUsUsed = CPU_util_pct_max*numberOfVirtualCores/100
+| stats values(host) as host_list dc(host) as total_hosts sum(physical_cores) as physical_cores sum(numberOfVirtualCores) as numberOfVirtualCores
+sum(max_5minCPUsUsed) as max_5minCPUsUsed
+by _time
+```24h Roll-Up```
+| bin _time span=1d
+| stats values(host_list) as host_list max(total_hosts) as total_hosts max(physical_cores) as physical_cores max(numberOfVirtualCores) as numberOfVirtualCores
+p90(max_5minCPUsUsed) as p90Daily_5minMax_CPUsUsed
+by _time</set>
+    <set token="trailing_search_2">| appendpipe [ 
+  | stats max(total_hosts) as total_hosts, max(physical_cores) as physical_cores, max(numberOfVirtualCores) as numberOfVirtualCores, p90(p90Daily_5minMax_CPUsUsed) as p90Daily_5minMax_CPUsUsed
+
+            | eval _time="90th Perc. across report duration (equivalent to 3 days out of 30)"]
+            | eval p90Daily_5minMax_CPUsUsed=round(p90Daily_5minMax_CPUsUsed,2)
+            | stats latest(p90Daily_5minMax_CPUsUsed) as p90Daily_5minMax_CPUsUsed</set>
+  </init>
+  <search id="baseSearch">
+    <query>
+$base_search$  earliest=$days$
+[ $dmc_assets$ ]
+ $trailing_search_1$
+    </query>
+  </search>
+  <fieldset submitButton="false">
+    <input type="dropdown" token="days" searchWhenChanged="true">
+      <label>Days For Linechart and Table</label>
+      <choice value="-7d@d">7 days</choice>
+      <choice value="-30d@d">30 Days</choice>
+      <choice value="-90d@d">90 Days</choice>
+      <default>-7d@d</default>
+      <initialValue>-7d@d</initialValue>
+    </input>
+    <input type="text" token="license" searchWhenChanged="true">
+      <label>vCPU License</label>
+      <default>1000</default>
+    </input>
+  </fieldset>
+  <row>
+    <panel>
+      <single>
+        <title>License And Total vCPU</title>
+        <search>
+          <query>| rest splunk_server=* /services/licenser/pools  ```license/total vCPU```
+| search stack_id=enterprise
+| eval "vCPUs Licensed" = effective_quota/1024/1024/1024| stats sum("vCPUs Licensed") as "vCPUs Licensed"
+| eval "vCPUs Licensed" = $license$
+      | appendcols [ | rest splunk_server_group=* splunk_server_group="*" /services/server/status/resource-usage/hostwide
+      | lookup dmc_assets serverName AS splunk_server OUTPUT search_group
+      | where (search_group="dmc_group_indexer" OR search_group="dmc_group_search_head")
+      | join type=outer splunk_server [
+          | `dmc_get_instance_roles` 
+          | fields role serverName
+          | rename serverName as splunk_server]
+      | eval normalized_load_avg_1min = if(isnull(normalized_load_avg_1min), "N/A", normalized_load_avg_1min)
+      | eval core_info = if(isnull(cpu_count), "N/A", cpu_count)." / ".if(isnull(virtual_cpu_count), "N/A", virtual_cpu_count)
+      | eval cpu_usage = 'cpu_system_pct' + 'cpu_user_pct'
+      | fields splunk_server, role, normalized_load_avg_1min, core_info, cpu_usage, cpu_count, virtual_cpu_count, cpu_system_pct, cpu_user_pct
+      | eval role = replace(role, " $$", "")
+      | eval role = split(role, " ") | stats sum(virtual_cpu_count) as "Total vCPU"
+        ]
+        | eval summary='vCPUs Licensed' + " / " + 'Total vCPU'
+        | fields summary</query>
+          <earliest>-24h@h</earliest>
+          <latest>now</latest>
+          <sampleRatio>1</sampleRatio>
+        </search>
+        <option name="drilldown">none</option>
+        <option name="rangeColors">["0x53a051","0x0877a6","0xf8be34","0xf1813f","0xdc4e41"]</option>
+        <option name="refresh.display">progressbar</option>
+        <option name="underLabel">License / Total vCPU</option>
+        <option name="useColors">0</option>
+      </single>
+    </panel>
+    <panel>
+      <single>
+        <title>vCPU Usage Yesterday</title>
+        <search>
+          <query>index=_introspection earliest=-1d@d latest=@d component=Hostwide 
+    [| inputlookup dmc_assets 
+    | table serverName as host, search_group 
+    | search search_group=*dmc_group_index* OR search_group=*dmc_group_search_head* 
+    | table host ] 
+| eval cpu_util = ('data.cpu_user_pct' + 'data.cpu_system_pct') 
+| bin _time span=5m 
+| table _time host data.cpu_count data.virtual_cpu_count data.cpu_idle_pct data.cpu_idle_pct cpu_util
+    ```5-min Roll-Up``` 
+| stats max(data.cpu_count) AS physical_cores, max(data.virtual_cpu_count) AS numberOfVirtualCores,
+    max(cpu_util) as CPU_util_pct_max by _time host 
+| eval max_5minCPUsUsed = CPU_util_pct_max*numberOfVirtualCores/100 
+| stats values(host) as host_list dc(host) as total_hosts sum(physical_cores) as physical_cores sum(numberOfVirtualCores) as numberOfVirtualCores
+    sum(max_5minCPUsUsed) as max_5minCPUsUsed
+    by _time
+    ```24h Roll-Up``` 
+| bin _time span=1d 
+| stats p90(max_5minCPUsUsed) as p90Daily_5minMax_CPUsUsed by _time 
+| eval p90Daily_5minMax_CPUsUsed=round(p90Daily_5minMax_CPUsUsed,2)</query>
+          <earliest>$earliest$</earliest>
+          <latest>$latest$</latest>
+        </search>
+        <option name="drilldown">none</option>
+        <option name="rangeColors">["0x53a051","0x0877a6","0xf8be34","0xf1813f","0xdc4e41"]</option>
+        <option name="refresh.display">progressbar</option>
+        <option name="useColors">0</option>
+      </single>
+    </panel>
+    <panel>
+      <single>
+        <title>vCPU Usage Last 30 Days</title>
+        <search>
+          <!--<query>-->
+          <!--$base_search$ earliest=-30d-->
+          <!--[ $dmc_assets$ ]-->
+          <!--| where _time &gt; relative_time(now(), "-30d")-->
+          <!--$trailing_search_1$-->
+          <!--  | appendpipe [ -->
+          <!--  | stats max(total_hosts) as total_hosts, max(physical_cores) as physical_cores, max(numberOfVirtualCores) as numberOfVirtualCores, p99(p90Daily_5minMax_CPUsUsed) as p90Daily_5minMax_CPUsUsed-->
+          <!--  | eval _time="90th Perc. across report duration (equivalent to 3 days out of 30)"]-->
+          <!--  | eval p90Daily_5minMax_CPUsUsed=round(p90Daily_5minMax_CPUsUsed,2)-->
+          <!--  | stats latest(p90Daily_5minMax_CPUsUsed) as p90Daily_5minMax_CPUsUsed</query>-->
+          <query>index=`vcpu_index` source=introspection_30d_ | head 1 | table p90Daily_5minMax_CPUsUsed</query>
+          <earliest>$earliest$</earliest>
+          <latest>$latest$</latest>
+        </search>
+        <option name="drilldown">none</option>
+        <option name="refresh.display">progressbar</option>
+      </single>
+    </panel>
+    <panel>
+      <single>
+        <title>vCPU Usage Last 90 Days</title>
+        <search>
+          <!--<query>-->
+          <!--  $base_search$ earliest=-90d-->
+          <!--  [ $dmc_assets$ ]-->
+          <!--  | where _time &gt; relative_time(now(), "-90d")-->
+          <!--  $trailing_search_1$-->
+          <!--  $trailing_search_2$</query>-->
+          <query>index=`vcpu_index` source=introspection_90d_ | head 1 | table p90Daily_5minMax_CPUsUsed</query>
+          <earliest>$earliest$</earliest>
+          <latest>$latest$</latest>
+        </search>
+        <option name="drilldown">none</option>
+        <option name="refresh.display">progressbar</option>
+      </single>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <title>Daily vCPU Usage Timechart</title>
+      <chart>
+        <search>
+          <!--          <query>$base_search$ earliest=$days$-->
+          <!--            [ $dmc_assets$ ]-->
+          <!--| eval cpu_util = ('data.cpu_user_pct' + 'data.cpu_system_pct') -->
+          <!--| bin _time span=5m-->
+          <!--| table _time host data.cpu_count data.virtual_cpu_count data.cpu_idle_pct data.cpu_idle_pct cpu_util-->
+          <!--```5-min Roll-Up```-->
+          <!--| stats max(data.cpu_count) AS physical_cores, max(data.virtual_cpu_count) AS numberOfVirtualCores,-->
+          <!--max(cpu_util) as CPU_util_pct_max-->
+          <!--by _time host-->
+          <!--| eval max_5minCPUsUsed = CPU_util_pct_max*numberOfVirtualCores/100-->
+          <!--| stats values(host) as host_list dc(host) as total_hosts sum(physical_cores) as physical_cores sum(numberOfVirtualCores) as -->
+          <!--numberOfVirtualCores-->
+          <!--sum(max_5minCPUsUsed) as max_5minCPUsUsed-->
+          <!--by _time-->
+          <!--```24h Roll-Up```-->
+          <!--| bin _time span=1d-->
+          <!--| stats values(host_list) as host_list max(total_hosts) as total_hosts max(physical_cores) as physical_cores max(numberOfVirtualCores) as-->
+          <!--numberOfVirtualCores-->
+          <!--p90(max_5minCPUsUsed) as p90Daily_5minMax_CPUsUsed-->
+          <!--by _time-->
+          <!--| timechart latest(p90Daily_5minMax_CPUsUsed) as p90Daily_5minMax_CPUsUsed  span=1d-->
+          <!--| eval License=$license$</query>-->
+          <query>index=`vcpu_index` source=daily_metrics_ earliest=$days$ latest=@d | timechart max(p90Daily_5minMax_CPUsUsed) as p90Daily_5minMax_CPUsUsed
+| eval license = $license$</query>
+          <earliest>$earliest$</earliest>
+          <latest>$latest$</latest>
+        </search>
+        <option name="charting.axisY2.abbreviation">none</option>
+        <option name="charting.axisY2.enabled">0</option>
+        <option name="charting.axisY2.maximumNumber">1000</option>
+        <option name="charting.axisY2.scale">inherit</option>
+        <option name="charting.chart">column</option>
+        <option name="charting.chart.overlayFields">license</option>
+        <option name="charting.chart.showDataLabels">none</option>
+        <option name="charting.drilldown">none</option>
+        <option name="charting.legend.placement">none</option>
+        <option name="refresh.display">progressbar</option>
+      </chart>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <table>
+        <!--<title>Daily Metrics for $days$</title>-->
+        <title>Daily Metrics And vCPU Usage Table</title>
+        <search>
+          <!--<search base="baseSearch">-->
+          <!--<query>| table _time total_hosts physical_cores numberOfVirtualCores p90Daily_5minMax_CPUsUsed-->
+          <!--| sort - _time-->
+          <!--| rename  total_hosts as "Total Hosts", physical_cores as "Physical Cores", numberOfVirtualCores as "Total Allocated vCPUs"</query>-->
+          <query>index=`vcpu_index` source=daily_metrics_table_ earliest=$days$ latest=@d 
+| dedup _time 
+| eval p90Daily_5minMax_CPUsUsed=round(p90Daily_5minMax_CPUsUsed,2)
+| table _time total_hosts physical_cores numberOfVirtualCores p90Daily_5minMax_CPUsUsed</query>
+          <earliest>$earliest$</earliest>
+          <latest>$latest$</latest>
+        </search>
+        <option name="drilldown">none</option>
+      </table>
+    </panel>
+  </row>
+</form>

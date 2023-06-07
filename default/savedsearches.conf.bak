@@ -1,0 +1,621 @@
+[vCPU - Last 1 Day]
+action.email.useNSSubject = 1
+action.webhook.enable_allowlist = 0
+alert.track = 0
+dispatch.earliest_time = 0
+display.page.search.mode = fast
+display.visualizations.show = 0
+request.ui_dispatch_app = vCPU-Helper-App
+request.ui_dispatch_view = search
+search = ``` last 1 day ```index=_introspection earliest=-1d component=Hostwide\
+[|inputlookup dmc_assets\
+ | table serverName as host, search_group\
+ | search search_group=*dmc_group_index* OR search_group=*dmc_group_search_head*\
+ | table host ]\
+ | eval cpu_util = ('data.cpu_user_pct' + 'data.cpu_system_pct')\
+| bin _time span=5m\
+| table _time host data.cpu_count data.virtual_cpu_count data.cpu_idle_pct data.cpu_idle_pct cpu_util\
+```5-min Roll-Up```\
+| stats max(data.cpu_count) AS physical_cores, max(data.virtual_cpu_count) AS numberOfVirtualCores,\
+max(cpu_util) as CPU_util_pct_max\
+by _time host\
+| eval max_5minCPUsUsed = CPU_util_pct_max*numberOfVirtualCores/100\
+| stats values(host) as host_list dc(host) as total_hosts sum(physical_cores) as physical_cores sum(numberOfVirtualCores) as numberOfVirtualCores\
+sum(max_5minCPUsUsed) as max_5minCPUsUsed\
+by _time\
+```24h Roll-Up```\
+| bin _time span=1d\
+| stats values(host_list) as host_list max(total_hosts) as total_hosts max(physical_cores) as physical_cores max(numberOfVirtualCores) as numberOfVirtualCores\
+p90(max_5minCPUsUsed) as p90Daily_5minMax_CPUsUsed\
+by _time\
+            | appendpipe [ \
+      \
+            | stats max(total_hosts) as total_hosts, max(physical_cores) as physical_cores, max(numberOfVirtualCores) as numberOfVirtualCores,\
+            p90(p90Daily_5minMax_CPUsUsed) as p90Daily_5minMax_CPUsUsed\
+            | eval _time="90th Perc. across report duration (equivalent to 3 days out of 30)"]\
+            | eval p90Daily_5minMax_CPUsUsed=round(p90Daily_5minMax_CPUsUsed,2)\
+            | stats latest(p90Daily_5minMax_CPUsUsed) as p90Daily_5minMax_CPUsUsed
+
+[vCPU - Last 30 days]
+action.email.useNSSubject = 1
+action.webhook.enable_allowlist = 0
+alert.track = 0
+dispatch.earliest_time = 0
+dispatchAs = user
+display.page.search.mode = fast
+display.visualizations.show = 0
+request.ui_dispatch_app = vCPU-Helper-App
+request.ui_dispatch_view = search
+search = ``` last 30 days ``` index=_introspection earliest=-30d component=Hostwide\
+[|inputlookup dmc_assets\
+ | table serverName as host, search_group\
+ | search search_group=*dmc_group_index* OR search_group=*dmc_group_search_head*\
+ | table host ]\
+ | eval cpu_util = ('data.cpu_user_pct' + 'data.cpu_system_pct')\
+| bin _time span=5m\
+| table _time host data.cpu_count data.virtual_cpu_count data.cpu_idle_pct data.cpu_idle_pct cpu_util\
+```5-min Roll-Up```\
+| stats max(data.cpu_count) AS physical_cores, max(data.virtual_cpu_count) AS numberOfVirtualCores,\
+max(cpu_util) as CPU_util_pct_max\
+by _time host\
+| eval max_5minCPUsUsed = CPU_util_pct_max*numberOfVirtualCores/100\
+| stats values(host) as host_list dc(host) as total_hosts sum(physical_cores) as physical_cores sum(numberOfVirtualCores) as numberOfVirtualCores\
+sum(max_5minCPUsUsed) as max_5minCPUsUsed\
+by _time\
+```24h Roll-Up```\
+| bin _time span=1d\
+| stats values(host_list) as host_list max(total_hosts) as total_hosts max(physical_cores) as physical_cores max(numberOfVirtualCores) as numberOfVirtualCores\
+p90(max_5minCPUsUsed) as p90Daily_5minMax_CPUsUsed\
+by _time\
+            | appendpipe [ \
+ \
+            | stats max(total_hosts) as total_hosts, max(physical_cores) as physical_cores, max(numberOfVirtualCores) as numberOfVirtualCores,\
+            p99(p90Daily_5minMax_CPUsUsed) as p90Daily_5minMax_CPUsUsed\
+            | eval _time="90th Perc. across report duration (equivalent to 3 days out of 30)"]\
+            | eval p90Daily_5minMax_CPUsUsed=round(p90Daily_5minMax_CPUsUsed,2)\
+            | stats latest(p90Daily_5minMax_CPUsUsed) as p90Daily_5minMax_CPUsUsed\
+
+[vCPU - Last 90 days]
+action.email.useNSSubject = 1
+action.webhook.enable_allowlist = 0
+alert.track = 0
+dispatch.earliest_time = 0
+dispatchAs = user
+display.page.search.mode = fast
+display.visualizations.show = 0
+request.ui_dispatch_app = vCPU-Helper-App
+request.ui_dispatch_view = search
+search = ```last 90 days```\
+index=_introspection earliest=-90d component=Hostwide\
+[|inputlookup dmc_assets\
+ | table serverName as host, search_group\
+ | search search_group=*dmc_group_index* OR search_group=*dmc_group_search_head*\
+ | table host ]\
+ | eval cpu_util = ('data.cpu_user_pct' + 'data.cpu_system_pct')\
+| bin _time span=5m\
+| table _time host data.cpu_count data.virtual_cpu_count data.cpu_idle_pct data.cpu_idle_pct cpu_util\
+```5-min Roll-Up```\
+| stats max(data.cpu_count) AS physical_cores, max(data.virtual_cpu_count) AS numberOfVirtualCores,\
+max(cpu_util) as CPU_util_pct_max\
+by _time host\
+| eval max_5minCPUsUsed = CPU_util_pct_max*numberOfVirtualCores/100\
+| stats values(host) as host_list dc(host) as total_hosts sum(physical_cores) as physical_cores sum(numberOfVirtualCores) as numberOfVirtualCores\
+sum(max_5minCPUsUsed) as max_5minCPUsUsed\
+by _time\
+```24h Roll-Up```\
+| bin _time span=1d\
+| stats values(host_list) as host_list max(total_hosts) as total_hosts max(physical_cores) as physical_cores max(numberOfVirtualCores) as numberOfVirtualCores\
+p90(max_5minCPUsUsed) as p90Daily_5minMax_CPUsUsed\
+by _time\
+            | appendpipe [ \
+            | stats max(total_hosts) as total_hosts, max(physical_cores) as physical_cores, max(numberOfVirtualCores) as numberOfVirtualCores,\
+            p90(p90Daily_5minMax_CPUsUsed) as p90Daily_5minMax_CPUsUsed\
+            | eval _time="90th Perc. across report duration (equivalent to 3 days out of 30)"]\
+            | eval p90Daily_5minMax_CPUsUsed=round(p90Daily_5minMax_CPUsUsed,2)\
+            | stats latest(p90Daily_5minMax_CPUsUsed) as p90Daily_5minMax_CPUsUsed
+
+[vCPU - Last 7 days]
+action.email.useNSSubject = 1
+action.webhook.enable_allowlist = 0
+alert.track = 0
+dispatch.earliest_time = 0
+dispatchAs = user
+display.page.search.mode = fast
+display.visualizations.show = 0
+request.ui_dispatch_app = vCPU-Helper-App
+request.ui_dispatch_view = search
+search = index=_introspection earliest=-7d component=Hostwide\
+[|inputlookup dmc_assets \
+ | table serverName as host, search_group \
+ | search search_group=*dmc_group_index* OR search_group=*dmc_group_search_head* \
+ | table host ]\
+ | eval cpu_util = ('data.cpu_user_pct' + 'data.cpu_system_pct') \
+| bin _time span=5m\
+| table _time host data.cpu_count data.virtual_cpu_count data.cpu_idle_pct data.cpu_idle_pct cpu_util\
+```5-min Roll-Up```\
+| stats max(data.cpu_count) AS physical_cores, max(data.virtual_cpu_count) AS numberOfVirtualCores,\
+max(cpu_util) as CPU_util_pct_max\
+by _time host\
+| eval max_5minCPUsUsed = CPU_util_pct_max*numberOfVirtualCores/100\
+| stats values(host) as host_list dc(host) as total_hosts sum(physical_cores) as physical_cores sum(numberOfVirtualCores) as \
+numberOfVirtualCores\
+sum(max_5minCPUsUsed) as max_5minCPUsUsed\
+by _time\
+```24h Roll-Up```\
+| bin _time span=1d\
+| stats values(host_list) as host_list max(total_hosts) as total_hosts max(physical_cores) as physical_cores max(numberOfVirtualCores) as\
+numberOfVirtualCores\
+p90(max_5minCPUsUsed) as p90Daily_5minMax_CPUsUsed\
+by _time\
+| timechart latest(p90Daily_5minMax_CPUsUsed) as p90Daily_5minMax_CPUsUsed span=1d
+
+
+[vCPU - Daily - Last 7 Days]
+action.email.useNSSubject = 1
+action.webhook.enable_allowlist = 0
+alert.track = 0
+dispatch.earliest_time = 0
+display.general.type = statistics
+display.page.search.tab = statistics
+display.visualizations.show = 0
+request.ui_dispatch_app = vCPU-Helper-App
+request.ui_dispatch_view = search
+search = index=_introspection earliest=-90d component=Hostwide\
+[|inputlookup dmc_assets\
+ | table serverName as host, search_group\
+ | search search_group=*dmc_group_index* OR search_group=*dmc_group_search_head*\
+ | table host ]\
+ | eval cpu_util = ('data.cpu_user_pct' + 'data.cpu_system_pct')\
+| bin _time span=5m\
+| table _time host data.cpu_count data.virtual_cpu_count data.cpu_idle_pct data.cpu_idle_pct cpu_util\
+```5-min Roll-Up```\
+| stats max(data.cpu_count) AS physical_cores, max(data.virtual_cpu_count) AS numberOfVirtualCores,\
+max(cpu_util) as CPU_util_pct_max\
+by _time host\
+| eval max_5minCPUsUsed = CPU_util_pct_max*numberOfVirtualCores/100\
+| stats values(host) as host_list dc(host) as total_hosts sum(physical_cores) as physical_cores sum(numberOfVirtualCores) as numberOfVirtualCores\
+sum(max_5minCPUsUsed) as max_5minCPUsUsed\
+by _time\
+```24h Roll-Up```\
+| bin _time span=1d\
+| stats values(host_list) as host_list max(total_hosts) as total_hosts max(physical_cores) as physical_cores max(numberOfVirtualCores) as numberOfVirtualCores\
+p90(max_5minCPUsUsed) as p90Daily_5minMax_CPUsUsed\
+by _time | table _time total_hosts physical_cores numberOfVirtualCores p90Daily_5minMax_CPUsUsed\
+| sort - _time
+
+[Daily Metrics for $days$]
+action.webhook.enable_allowlist = 0
+alert.track = 0
+dispatchAs = user
+display.general.type = statistics
+display.statistics.drilldown = none
+search = index=_introspection earliest=-90d component=Hostwide\
+[|inputlookup dmc_assets\
+ | table serverName as host, search_group\
+ | search search_group=*dmc_group_index* OR search_group=*dmc_group_search_head*\
+ | table host ]\
+ | eval cpu_util = ('data.cpu_user_pct' + 'data.cpu_system_pct')\
+| bin _time span=5m\
+| table _time host data.cpu_count data.virtual_cpu_count data.cpu_idle_pct data.cpu_idle_pct cpu_util\
+```5-min Roll-Up```\
+| stats max(data.cpu_count) AS physical_cores, max(data.virtual_cpu_count) AS numberOfVirtualCores,\
+max(cpu_util) as CPU_util_pct_max\
+by _time host\
+| eval max_5minCPUsUsed = CPU_util_pct_max*numberOfVirtualCores/100\
+| stats values(host) as host_list dc(host) as total_hosts sum(physical_cores) as physical_cores sum(numberOfVirtualCores) as numberOfVirtualCores\
+sum(max_5minCPUsUsed) as max_5minCPUsUsed\
+by _time\
+```24h Roll-Up```\
+| bin _time span=1d\
+| stats values(host_list) as host_list max(total_hosts) as total_hosts max(physical_cores) as physical_cores max(numberOfVirtualCores) as numberOfVirtualCores\
+p90(max_5minCPUsUsed) as p90Daily_5minMax_CPUsUsed\
+by _time | table _time total_hosts physical_cores numberOfVirtualCores p90Daily_5minMax_CPUsUsed\
+| sort - _time
+
+[vCPU in active use - Last X days]
+action.webhook.enable_allowlist = 0
+alert.track = 0
+dispatchAs = user
+display.general.type = visualizations
+display.visualizations.charting.chart = line
+display.visualizations.charting.drilldown = none
+search = index=_introspection earliest=-30d component=Hostwide\
+[|inputlookup dmc_assets \
+ | table serverName as host, search_group \
+ | search search_group=*dmc_group_index* OR search_group=*dmc_group_search_head* \
+ | table host ]\
+ | eval cpu_util = ('data.cpu_user_pct' + 'data.cpu_system_pct') \
+| bin _time span=5m\
+| table _time host data.cpu_count data.virtual_cpu_count data.cpu_idle_pct data.cpu_idle_pct cpu_util\
+```5-min Roll-Up```\
+| stats max(data.cpu_count) AS physical_cores, max(data.virtual_cpu_count) AS numberOfVirtualCores,\
+max(cpu_util) as CPU_util_pct_max\
+by _time host\
+| eval max_5minCPUsUsed = CPU_util_pct_max*numberOfVirtualCores/100\
+| stats values(host) as host_list dc(host) as total_hosts sum(physical_cores) as physical_cores sum(numberOfVirtualCores) as \
+numberOfVirtualCores\
+sum(max_5minCPUsUsed) as max_5minCPUsUsed\
+by _time\
+```24h Roll-Up```\
+| bin _time span=1d\
+| stats values(host_list) as host_list max(total_hosts) as total_hosts max(physical_cores) as physical_cores max(numberOfVirtualCores) as\
+numberOfVirtualCores\
+p90(max_5minCPUsUsed) as p90Daily_5minMax_CPUsUsed\
+by _time\
+| timechart latest(p90Daily_5minMax_CPUsUsed) as p90Daily_5minMax_CPUsUsed span=1d
+
+[vCPU in active use for 30 days]
+action.webhook.enable_allowlist = 0
+alert.track = 0
+dispatchAs = user
+display.general.type = visualizations
+display.visualizations.type = singlevalue
+search = index=_introspection earliest=-30d component=Hostwide\
+[|inputlookup dmc_assets\
+ | table serverName as host, search_group\
+ | search search_group=*dmc_group_index* OR search_group=*dmc_group_search_head*\
+ | table host ]\
+ | eval cpu_util = ('data.cpu_user_pct' + 'data.cpu_system_pct')\
+| bin _time span=5m\
+| table _time host data.cpu_count data.virtual_cpu_count data.cpu_idle_pct data.cpu_idle_pct cpu_util\
+```5-min Roll-Up```\
+| stats max(data.cpu_count) AS physical_cores, max(data.virtual_cpu_count) AS numberOfVirtualCores,\
+max(cpu_util) as CPU_util_pct_max\
+by _time host\
+| eval max_5minCPUsUsed = CPU_util_pct_max*numberOfVirtualCores/100\
+| stats values(host) as host_list dc(host) as total_hosts sum(physical_cores) as physical_cores sum(numberOfVirtualCores) as numberOfVirtualCores\
+sum(max_5minCPUsUsed) as max_5minCPUsUsed\
+by _time\
+```24h Roll-Up```\
+| bin _time span=1d\
+| stats values(host_list) as host_list max(total_hosts) as total_hosts max(physical_cores) as physical_cores max(numberOfVirtualCores) as numberOfVirtualCores\
+p90(max_5minCPUsUsed) as p90Daily_5minMax_CPUsUsed\
+by _time\
+            | appendpipe [ \
+ \
+            | stats max(total_hosts) as total_hosts, max(physical_cores) as physical_cores, max(numberOfVirtualCores) as numberOfVirtualCores,\
+            p99(p90Daily_5minMax_CPUsUsed) as p90Daily_5minMax_CPUsUsed\
+            | eval _time="90th Perc. across report duration (equivalent to 3 days out of 30)"]\
+            | eval p90Daily_5minMax_CPUsUsed=round(p90Daily_5minMax_CPUsUsed,2)\
+            | stats latest(p90Daily_5minMax_CPUsUsed) as p90Daily_5minMax_CPUsUsed
+
+[vCPU in active use for 90 days]
+action.webhook.enable_allowlist = 0
+alert.track = 0
+display.general.type = visualizations
+display.visualizations.type = singlevalue
+search = index=_introspection earliest=-90d component=Hostwide\
+[|inputlookup dmc_assets\
+ | table serverName as host, search_group\
+ | search search_group=*dmc_group_index* OR search_group=*dmc_group_search_head*\
+ | table host ]\
+ | eval cpu_util = ('data.cpu_user_pct' + 'data.cpu_system_pct')\
+| bin _time span=5m\
+| table _time host data.cpu_count data.virtual_cpu_count data.cpu_idle_pct data.cpu_idle_pct cpu_util\
+```5-min Roll-Up```\
+| stats max(data.cpu_count) AS physical_cores, max(data.virtual_cpu_count) AS numberOfVirtualCores,\
+max(cpu_util) as CPU_util_pct_max\
+by _time host\
+| eval max_5minCPUsUsed = CPU_util_pct_max*numberOfVirtualCores/100\
+| stats values(host) as host_list dc(host) as total_hosts sum(physical_cores) as physical_cores sum(numberOfVirtualCores) as numberOfVirtualCores\
+sum(max_5minCPUsUsed) as max_5minCPUsUsed\
+by _time\
+```24h Roll-Up```\
+| bin _time span=1d\
+| stats values(host_list) as host_list max(total_hosts) as total_hosts max(physical_cores) as physical_cores max(numberOfVirtualCores) as numberOfVirtualCores\
+p90(max_5minCPUsUsed) as p90Daily_5minMax_CPUsUsed\
+by _time\
+            | appendpipe [ \
+            | stats max(total_hosts) as total_hosts, max(physical_cores) as physical_cores, max(numberOfVirtualCores) as numberOfVirtualCores,\
+            p90(p90Daily_5minMax_CPUsUsed) as p90Daily_5minMax_CPUsUsed\
+            | eval _time="90th Perc. across report duration (equivalent to 3 days out of 30)"]\
+            | eval p90Daily_5minMax_CPUsUsed=round(p90Daily_5minMax_CPUsUsed,2)\
+            | stats latest(p90Daily_5minMax_CPUsUsed) as p90Daily_5minMax_CPUsUsed
+
+[vCPU in active use for 1 day]
+action.webhook.enable_allowlist = 0
+alert.track = 0
+display.general.type = visualizations
+display.visualizations.type = singlevalue
+search = index=_introspection earliest=-1d component=Hostwide\
+[|inputlookup dmc_assets\
+ | table serverName as host, search_group\
+ | search search_group=*dmc_group_index* OR search_group=*dmc_group_search_head*\
+ | table host ]\
+ | eval cpu_util = ('data.cpu_user_pct' + 'data.cpu_system_pct')\
+| bin _time span=5m\
+| table _time host data.cpu_count data.virtual_cpu_count data.cpu_idle_pct data.cpu_idle_pct cpu_util\
+```5-min Roll-Up```\
+| stats max(data.cpu_count) AS physical_cores, max(data.virtual_cpu_count) AS numberOfVirtualCores,\
+max(cpu_util) as CPU_util_pct_max\
+by _time host\
+| eval max_5minCPUsUsed = CPU_util_pct_max*numberOfVirtualCores/100\
+| stats values(host) as host_list dc(host) as total_hosts sum(physical_cores) as physical_cores sum(numberOfVirtualCores) as numberOfVirtualCores\
+sum(max_5minCPUsUsed) as max_5minCPUsUsed\
+by _time\
+```24h Roll-Up```\
+| bin _time span=1d\
+| stats values(host_list) as host_list max(total_hosts) as total_hosts max(physical_cores) as physical_cores max(numberOfVirtualCores) as numberOfVirtualCores\
+p90(max_5minCPUsUsed) as p90Daily_5minMax_CPUsUsed\
+by _time\
+            | appendpipe [ \
+      \
+            | stats max(total_hosts) as total_hosts, max(physical_cores) as physical_cores, max(numberOfVirtualCores) as numberOfVirtualCores,\
+            p90(p90Daily_5minMax_CPUsUsed) as p90Daily_5minMax_CPUsUsed\
+            | eval _time="90th Perc. across report duration (equivalent to 3 days out of 30)"]\
+            | eval p90Daily_5minMax_CPUsUsed=round(p90Daily_5minMax_CPUsUsed,2)\
+            | stats latest(p90Daily_5minMax_CPUsUsed) as p90Daily_5minMax_CPUsUsed
+
+
+
+
+[vCPU - Daily_Volume_GB Prediction]
+action.email.useNSSubject = 1
+action.webhook.enable_allowlist = 1
+alert.track = 0
+cron_schedule = 0 * * * *
+dispatch.earliest_time = -24h@h
+dispatch.latest_time = now
+display.general.type = statistics
+display.page.search.mode = fast
+display.page.search.tab = statistics
+display.visualizations.charting.chart = line
+display.visualizations.charting.chart.showDataLabels = minmax
+display.visualizations.show = 0
+request.ui_dispatch_app = search
+request.ui_dispatch_view = search
+search = ```Determine vCPU usage with current ingestion\
+    Verify vCPU usage based on ranges of ingestion.\
+    Exclude weekends in the Search if applicable. \
+\
+==> Compute for Workload Factor = Daily_Volume_GB / p90Daily_5minMax_CPUsUsed.\
+\
+    Modify the query: \
+| eval date_wday=strftime(_time,"%w") \
+| where date_wday>0 AND date_wday<6\
+\
+    ```\
+  \
+  \
+  index=_introspection earliest=-15d component=Hostwide\
+[ search index=_internal  earliest=-1d latest=now() | stats count by splunk_server | rename splunk_server as server ```idx```\
+| append   [ search index=_internal sourcetype=scheduler | stats count by host | rename host as server  ```sh``` ]\
+| rename server as host\
+| table host]\
+\
+| eval cpu_util = ('data.cpu_user_pct' + 'data.cpu_system_pct') \
+| bin _time span=5m\
+| table _time host data.cpu_count data.virtual_cpu_count data.cpu_idle_pct data.cpu_idle_pct cpu_util\
+```5-min Roll-Up```\
+| stats max(data.cpu_count) AS physical_cores, max(data.virtual_cpu_count) AS numberOfVirtualCores, max(cpu_util) as CPU_util_pct_max by _time host\
+| eval max_5minCPUsUsed = CPU_util_pct_max*numberOfVirtualCores/100\
+| stats values(host) as host_list dc(host) as total_hosts sum(physical_cores) as physical_cores sum(numberOfVirtualCores) as numberOfVirtualCores sum(max_5minCPUsUsed) as max_5minCPUsUsed by _time\
+\
+ ```24h Roll-Up``` \
+| bin _time span=1d \
+| stats values(host_list) as host_list max(total_hosts) as total_hosts max(physical_cores) as physical_cores max(numberOfVirtualCores) as numberOfVirtualCores p90(max_5minCPUsUsed) as p90Daily_5minMax_CPUsUsed by _time\
+    ```Half Month Roll-Up``` \
+| convert ctime(_time) AS workload_time \
+| appendpipe \
+    [| stats max(total_hosts) as total_hosts, max(physical_cores) as physical_cores, max(numberOfVirtualCores) as numberOfVirtualCores, p90(p90Daily_5minMax_CPUsUsed) as p90Daily_5minMax_CPUsUsed] \
+| eval p90Daily_5minMax_CPUsUsed=round(p90Daily_5minMax_CPUsUsed,2) \
+| join workload_time \
+    [ search index=_internal source=*license_usage.log* type="RolloverSummary" earliest=-15d@d latest=@d \
+    | dedup _raw \
+    | bin span=1d _time \
+    | stats sum(b) AS daily_volume_gb by _time \
+    | eval daily_volume_gb = round(daily_volume_gb/1024/1024/1024,2) \
+    | convert ctime(_time) AS workload_time \
+    | table workload_time daily_volume_gb] \
+    \
+    | eval workload_factor = daily_volume_gb / p90Daily_5minMax_CPUsUsed\
+| table _time workload_time daily_volume_gb p90Daily_5minMax_CPUsUsed numberOfVirtualCores physical_cores total_hosts workload_factor\
+| timechart limit=10 usenull=false list(daily_volume_gb) as Daily_Volume_GB\
+| predict Daily_Volume_GB
+workload_pool = high_perf
+
+[vCPU - Daily Indexing Volume]
+action.email.useNSSubject = 1
+action.webhook.enable_allowlist = 1
+alert.track = 0
+description = Expected volume of data in gigabytes indexed into your Splunk platform on a daily basis. \
+\
+To retrieve this metric from your existing Splunk deployment, run the following search. The search will calculate the near max (95th percentile) of the daily indexing volume over the last seven days, not including the current day (since it's partial).
+dispatch.earliest_time = -30m@m
+dispatch.latest_time = now
+display.general.type = statistics
+display.page.search.mode = fast
+display.page.search.tab = statistics
+display.visualizations.show = 0
+request.ui_dispatch_app = search
+request.ui_dispatch_view = search
+search = earliest=-7day@day latest=@day index=_internal source="*/license_usage.log" type=Usage b=*\
+ | timechart span=1day sum(b) AS size\
+ | stats perc95(size) AS size\
+ | eval size = round( size / pow( 1024 , 3 ) , 2 ) . " GB"
+workload_pool = standard_perf
+
+[vCPU - IOPS]
+action.email.useNSSubject = 1
+action.webhook.enable_allowlist = 1
+alert.track = 0
+dispatch.earliest_time = -30m@m
+dispatch.latest_time = now
+dispatchAs = user
+display.general.type = statistics
+display.page.search.mode = fast
+display.page.search.tab = statistics
+display.visualizations.show = 0
+request.ui_dispatch_app = search
+request.ui_dispatch_view = search
+search = | rest splunk_server=* /services/server/status/partitions-space\
+| join type=outer splunk_server, mount_point\
+    [| rest splunk_server=* /services/server/status/resource-usage/iostats\
+    | eval iops = round(reads_ps + writes_ps)\
+    | fields splunk_server, mount_point, iops, cpu_pct]\
+| eval free = if(isnotnull(available), available, free)\
+| eval usage = round((capacity - free) / 1024, 2)\
+| eval capacity = round(capacity / 1024, 2)\
+| eval compare_usage = usage." / ".capacity\
+| eval pct_usage = round(usage / capacity * 100, 2)\
+| stats first(fs_type) as fs_type first(compare_usage) as compare_usage first(pct_usage) as pct_usage, first(iops) as iops, first(cpu_pct) as cpu_pct by mount_point\
+| rename mount_point as "Mount Point", fs_type as "File System Type", compare_usage as "Disk Usage (GB)", capacity as "Capacity (GB)", pct_usage as "Disk Usage (%)", iops as "I/O operations per second", cpu_pct as "I/O Bandwidth Utilization(%)"
+workload_pool = standard_perf
+
+[vCPU - Predict vCPU usage]
+action.email.useNSSubject = 1
+action.webhook.enable_allowlist = 1
+alert.track = 0
+cron_schedule = 0 * * * *
+dispatch.earliest_time = -24h@h
+dispatch.latest_time = now
+display.general.type = visualizations
+display.page.search.mode = fast
+display.page.search.tab = visualizations
+display.visualizations.charting.chart = line
+display.visualizations.charting.chart.showDataLabels = minmax
+enableSched = 1
+request.ui_dispatch_app = search
+request.ui_dispatch_view = search
+search = ```Determine vCPU usage with current ingestion\
+    Verify vCPU usage based on ranges of ingestion.\
+    Exclude weekends in the Search if applicable. \
+\
+==> Compute for Workload Factor = Daily_Volume_GB / p90Daily_5minMax_CPUsUsed.\
+\
+    Modify the query: \
+| eval date_wday=strftime(_time,"%w") \
+| where date_wday>0 AND date_wday<6\
+\
+    ```\
+  \
+  \
+  index=_introspection earliest=-15d component=Hostwide\
+[ search index=_internal  earliest=-1d latest=now() | stats count by splunk_server | rename splunk_server as server ```idx```\
+| append   [ search index=_internal sourcetype=scheduler | stats count by host | rename host as server  ```sh``` ]\
+| rename server as host\
+| table host]\
+\
+| eval cpu_util = ('data.cpu_user_pct' + 'data.cpu_system_pct') \
+| bin _time span=5m\
+| table _time host data.cpu_count data.virtual_cpu_count data.cpu_idle_pct data.cpu_idle_pct cpu_util\
+```5-min Roll-Up```\
+| stats max(data.cpu_count) AS physical_cores, max(data.virtual_cpu_count) AS numberOfVirtualCores, max(cpu_util) as CPU_util_pct_max by _time host\
+| eval max_5minCPUsUsed = CPU_util_pct_max*numberOfVirtualCores/100\
+| stats values(host) as host_list dc(host) as total_hosts sum(physical_cores) as physical_cores sum(numberOfVirtualCores) as numberOfVirtualCores sum(max_5minCPUsUsed) as max_5minCPUsUsed by _time\
+\
+ ```24h Roll-Up``` \
+| bin _time span=1d \
+| stats values(host_list) as host_list max(total_hosts) as total_hosts max(physical_cores) as physical_cores max(numberOfVirtualCores) as numberOfVirtualCores p90(max_5minCPUsUsed) as p90Daily_5minMax_CPUsUsed by _time\
+    ```Half Month Roll-Up``` \
+| convert ctime(_time) AS workload_time \
+| appendpipe \
+    [| stats max(total_hosts) as total_hosts, max(physical_cores) as physical_cores, max(numberOfVirtualCores) as numberOfVirtualCores, p90(p90Daily_5minMax_CPUsUsed) as p90Daily_5minMax_CPUsUsed] \
+| eval p90Daily_5minMax_CPUsUsed=round(p90Daily_5minMax_CPUsUsed,2) \
+| join workload_time \
+    [ search index=_internal source=*license_usage.log* type="RolloverSummary" earliest=-15d@d latest=@d \
+    | dedup _raw \
+    | bin span=1d _time \
+    | stats sum(b) AS daily_volume_gb by _time \
+    | eval daily_volume_gb = round(daily_volume_gb/1024/1024/1024,2) \
+    | convert ctime(_time) AS workload_time \
+    | table workload_time daily_volume_gb] \
+    \
+    | eval workload_factor = daily_volume_gb / p90Daily_5minMax_CPUsUsed\
+| table _time workload_time daily_volume_gb p90Daily_5minMax_CPUsUsed numberOfVirtualCores physical_cores total_hosts workload_factor\
+| timechart limit=10 usenull=false list(daily_volume_gb) as Daily_Volume_GB  list(p90Daily_5minMax_CPUsUsed) as CPUsUsed\
+| predict Daily_Volume_GB CPUsUsed
+workload_pool = high_perf
+
+[vCPU Accelerated]
+action.email.useNSSubject = 1
+action.webhook.enable_allowlist = 1
+alert.track = 0
+cron_schedule = 0 * * * *
+dispatch.earliest_time = -30m@m
+dispatch.latest_time = now
+display.general.type = statistics
+display.page.search.mode = fast
+display.page.search.tab = statistics
+display.visualizations.show = 0
+enableSched = 1
+request.ui_dispatch_app = search
+request.ui_dispatch_view = search
+search = index=_introspection earliest=-30d component=Hostwide\
+[ search index=_internal  earliest=-1d latest=now() | stats count by splunk_server | rename splunk_server as server ```idx```\
+| append   [ search index=_internal sourcetype=scheduler | stats count by host | rename host as server  ```sh``` ]\
+| rename server as host\
+| table host]\
+\
+| eval cpu_util = ('data.cpu_user_pct' + 'data.cpu_system_pct') \
+| bin _time span=5m\
+| table _time host data.cpu_count data.virtual_cpu_count data.cpu_idle_pct data.cpu_idle_pct cpu_util\
+```5-min Roll-Up```\
+| stats max(data.cpu_count) AS physical_cores, max(data.virtual_cpu_count) AS numberOfVirtualCores, max(cpu_util) as CPU_util_pct_max by _time host\
+| eval max_5minCPUsUsed = CPU_util_pct_max*numberOfVirtualCores/100\
+| stats values(host) as host_list dc(host) as total_hosts sum(physical_cores) as physical_cores sum(numberOfVirtualCores) as numberOfVirtualCores sum(max_5minCPUsUsed) as max_5minCPUsUsed by _time\
+\
+ ```24h Roll-Up``` \
+| bin _time span=1d \
+| stats values(host_list) as host_list max(total_hosts) as total_hosts max(physical_cores) as physical_cores max(numberOfVirtualCores) as numberOfVirtualCores p90(max_5minCPUsUsed) as p90Daily_5minMax_CPUsUsed by _time\
+    ```Month Roll-Up``` \
+| convert ctime(_time) AS workload_time \
+| appendpipe \
+    [| stats max(total_hosts) as total_hosts, max(physical_cores) as physical_cores, max(numberOfVirtualCores) as numberOfVirtualCores, p90(p90Daily_5minMax_CPUsUsed) as p90Daily_5minMax_CPUsUsed] \
+| eval p90Daily_5minMax_CPUsUsed=round(p90Daily_5minMax_CPUsUsed,2) \
+| join workload_time \
+    [ search index=_internal source=*license_usage.log* type="RolloverSummary" earliest=-30d@d latest=@d \
+    | dedup _raw \
+    | bin span=1d _time \
+    | stats sum(b) AS daily_volume_gb by _time \
+    | eval daily_volume_gb = round(daily_volume_gb/1024/1024/1024,2) \
+    | convert ctime(_time) AS workload_time \
+    | table workload_time daily_volume_gb] \
+| table workload_time daily_volume_gb p90Daily_5minMax_CPUsUsed numberOfVirtualCores physical_cores total_hosts
+workload_pool = high_perf
+
+
+
+
+[vCPU Primary Search]
+action.email.useNSSubject = 1
+action.webhook.enable_allowlist = 1
+alert.track = 0
+cron_schedule = 0 * * * *
+dispatch.earliest_time = -24h@h
+dispatch.latest_time = now
+display.general.type = statistics
+display.page.search.mode = fast
+display.page.search.tab = statistics
+display.visualizations.charting.chart = line
+display.visualizations.charting.chart.showDataLabels = minmax
+display.visualizations.show = 0
+request.ui_dispatch_app = search
+request.ui_dispatch_view = search
+search = index=_introspection earliest=-30d component=Hostwide \
+[|inputlookup dmc_assets  \
+ | table serverName as host, search_group \
+ | search search_group=*dmc_group_index* OR search_group=*dmc_group_search_head* \
+ | table host ] \
+ | eval cpu_util = ('data.cpu_user_pct' + 'data.cpu_system_pct') \
+| bin _time span=5m \
+| table _time host data.cpu_count data.virtual_cpu_count data.cpu_idle_pct data.cpu_idle_pct cpu_util \
+```5-min Roll-Up``` \
+| stats max(data.cpu_count) AS physical_cores, max(data.virtual_cpu_count) AS numberOfVirtualCores, \
+max(cpu_util) as CPU_util_pct_max \
+by _time host \
+| eval max_5minCPUsUsed = CPU_util_pct_max*numberOfVirtualCores/100 \
+| stats values(host) as host_list dc(host) as total_hosts sum(physical_cores) as physical_cores sum(numberOfVirtualCores) as numberOfVirtualCores \
+sum(max_5minCPUsUsed) as max_5minCPUsUsed \
+by _time \
+```24h Roll-Up```  \
+| bin _time span=1d \
+| stats values(host_list) as host_list max(total_hosts) as total_hosts max(physical_cores) as physical_cores max(numberOfVirtualCores) as numberOfVirtualCores \
+p90(max_5minCPUsUsed) as p90Daily_5minMax_CPUsUsed \
+by _time \
+```Month Roll-Up``` \
+| appendpipe [ \
+| stats max(total_hosts) as total_hosts, max(physical_cores) as physical_cores, max(numberOfVirtualCores) as numberOfVirtualCores,  \
+p90(p90Daily_5minMax_CPUsUsed) as p90Daily_5minMax_CPUsUsed \
+| eval _time="90th Perc. across report duration (equivalent to 3 days out of 30)"] \
+| eval p90Daily_5minMax_CPUsUsed=round(p90Daily_5minMax_CPUsUsed,2) 

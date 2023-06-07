@@ -1,0 +1,210 @@
+<form version="1.1">
+  <search id="baseSearch">
+    <query>index=_introspection earliest=-30d component=Hostwide
+[|inputlookup dmc_assets
+ | table serverName as host, search_group
+ | search search_group=*dmc_group_index* OR search_group=*dmc_group_search_head*
+ | table host ]
+ | eval cpu_util = ('data.cpu_user_pct' + 'data.cpu_system_pct')
+| bin _time span=5m
+| table _time host data.cpu_count data.virtual_cpu_count data.cpu_idle_pct data.cpu_idle_pct cpu_util
+```5-min Roll-Up```
+| stats max(data.cpu_count) AS physical_cores, max(data.virtual_cpu_count) AS numberOfVirtualCores,
+max(cpu_util) as CPU_util_pct_max
+by _time host
+| eval max_5minCPUsUsed = CPU_util_pct_max*numberOfVirtualCores/100
+| stats values(host) as host_list dc(host) as total_hosts sum(physical_cores) as physical_cores sum(numberOfVirtualCores) as numberOfVirtualCores
+sum(max_5minCPUsUsed) as max_5minCPUsUsed
+by _time
+```24h Roll-Up```
+| bin _time span=1d
+| stats values(host_list) as host_list max(total_hosts) as total_hosts max(physical_cores) as physical_cores max(numberOfVirtualCores) as numberOfVirtualCores p90(max_5minCPUsUsed) as p90Daily_5minMax_CPUsUsed by _time
+    </query>
+    <earliest>-24h@h</earliest>
+    <latest>now</latest>
+    <sampleRatio>1</sampleRatio>
+  </search>
+  <label>vCPU | Services Usage </label>
+  <description>vCPU</description>
+  <fieldset submitButton="false">
+    <input type="dropdown" token="pspan" searchWhenChanged="true">
+      <label>Pick Predictive Span - 30,60,90</label>
+      <choice value="1">1</choice>
+      <choice value="5">5</choice>
+      <choice value="10">10</choice>
+      <choice value="15">15</choice>
+      <choice value="20">20</choice>
+      <choice value="25">25</choice>
+      <choice value="30">30</choice>
+      <choice value="100">100</choice>
+      <initialValue>5</initialValue>
+      <default>5</default>
+    </input>
+    <input type="dropdown" token="field1">
+      <label>Time Range</label>
+      <choice value="30-5">30</choice>
+      <choice value="60-10">60</choice>
+      <choice value="90-15">90</choice>
+    </input>
+  </fieldset>
+  <row>
+    <panel>
+      <title>vCPU Usage Overview</title>
+      <chart>
+        <search>
+          <query>index=_introspection earliest=-30d component=Hostwide
+[|inputlookup dmc_assets
+ | table serverName as host, search_group
+ | search search_group=*dmc_group_index* OR search_group=*dmc_group_search_head*
+ | table host ]
+ | eval cpu_util = ('data.cpu_user_pct' + 'data.cpu_system_pct')
+| bin _time span=5m
+| table _time host data.cpu_count data.virtual_cpu_count data.cpu_idle_pct data.cpu_idle_pct cpu_util
+```5-min Roll-Up```
+| stats max(data.cpu_count) AS physical_cores, max(data.virtual_cpu_count) AS numberOfVirtualCores,
+max(cpu_util) as CPU_util_pct_max
+by _time host
+| eval max_5minCPUsUsed = CPU_util_pct_max*numberOfVirtualCores/100
+| stats values(host) as host_list dc(host) as total_hosts sum(physical_cores) as physical_cores sum(numberOfVirtualCores) as numberOfVirtualCores
+sum(max_5minCPUsUsed) as max_5minCPUsUsed
+by _time
+```24h Roll-Up```
+| bin _time span=1d
+| stats values(host_list) as host_list max(total_hosts) as total_hosts max(physical_cores) as physical_cores max(numberOfVirtualCores) as numberOfVirtualCores p90(max_5minCPUsUsed) as p90Daily_5minMax_CPUsUsed by _time
+| fields _time p90Daily_5minMax_CPUsUsed
+| predict future_timespan=$pspan$ p90Daily_5minMax_CPUsUsed</query>
+          <earliest>-24h@h</earliest>
+          <latest>now</latest>
+          <sampleRatio>1</sampleRatio>
+        </search>
+        <option name="charting.axisLabelsX.majorLabelStyle.overflowMode">ellipsisNone</option>
+        <option name="charting.axisLabelsX.majorLabelStyle.rotation">0</option>
+        <option name="charting.axisTitleX.visibility">visible</option>
+        <option name="charting.axisTitleY.visibility">visible</option>
+        <option name="charting.axisTitleY2.visibility">visible</option>
+        <option name="charting.axisX.abbreviation">none</option>
+        <option name="charting.axisX.scale">linear</option>
+        <option name="charting.axisY.abbreviation">none</option>
+        <option name="charting.axisY.minimumNumber">0</option>
+        <option name="charting.axisY.scale">linear</option>
+        <option name="charting.axisY2.abbreviation">none</option>
+        <option name="charting.axisY2.enabled">0</option>
+        <option name="charting.axisY2.scale">inherit</option>
+        <option name="charting.chart">column</option>
+        <option name="charting.chart.bubbleMaximumSize">50</option>
+        <option name="charting.chart.bubbleMinimumSize">10</option>
+        <option name="charting.chart.bubbleSizeBy">area</option>
+        <option name="charting.chart.nullValueMode">gaps</option>
+        <option name="charting.chart.showDataLabels">none</option>
+        <option name="charting.chart.sliceCollapsingThreshold">0.01</option>
+        <option name="charting.chart.stackMode">default</option>
+        <option name="charting.chart.style">shiny</option>
+        <option name="charting.drilldown">none</option>
+        <option name="charting.layout.splitSeries">0</option>
+        <option name="charting.layout.splitSeries.allowIndependentYRanges">0</option>
+        <option name="charting.legend.labelStyle.overflowMode">ellipsisMiddle</option>
+        <option name="charting.legend.mode">standard</option>
+        <option name="charting.legend.placement">bottom</option>
+        <option name="charting.lineWidth">2</option>
+        <option name="refresh.display">progressbar</option>
+        <option name="trellis.enabled">0</option>
+        <option name="trellis.scales.shared">1</option>
+        <option name="trellis.size">medium</option>
+      </chart>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <title>Services Usage over Days</title>
+      <chart>
+        <search>
+          <query>index=_introspection  sourcetype=splunk_resource_usage component=PerProcess earliest=-7d
+| eval process = 'data.process' 
+| eval args = 'data.args' 
+| eval pid = 'data.pid' 
+| eval ppid = 'data.ppid' 
+| eval elapsed = 'data.elapsed' 
+| eval mem_used = 'data.mem_used' 
+| eval mem = 'data.mem' 
+| eval pct_memory = 'data.pct_memory' 
+| eval normalized_pct_cpu = 'data.normalized_pct_cpu' 
+| eval pct_cpu = 'data.pct_cpu' 
+| eval sid = 'data.search_props.sid' 
+| eval app = 'data.search_props.app' 
+| eval label = 'data.search_props.label' 
+| eval type = 'data.search_props.type' 
+| eval mode = 'data.search_props.mode' 
+| eval user = 'data.search_props.user' 
+| eval role = 'data.search_props.role' 
+| eval label = if(isnotnull('data.search_props.label'), 'data.search_props.label', "") 
+| eval provenance = if(isnotnull('data.search_props.provenance'), 'data.search_props.provenance', "unknown") 
+| eval search_head = case(isnotnull('data.search_props.search_head') AND 'data.search_props.role' == "peer", 'data.search_props.search_head', isnull('data.search_props.search_head') AND 'data.search_props.role' == "head", "_self", isnull('data.search_props.search_head') AND 'data.search_props.role' == "peer", "_unknown") 
+| eval workload_pool = if(isnotnull('data.workload_pool'), 'data.workload_pool', "UNDEFINED") 
+| eval process_class = case( process=="splunk-optimize","index service", process=="sh" OR process=="ksh" OR process=="bash" OR like(process,"python%") OR process=="powershell","scripted input", process=="mongod", "KVStore") 
+| eval process_class = case( process=="splunkd" AND (like(args,"-p %start%") OR like(args,"service") OR like(args,"%_internal_launch_under_systemd%")),"splunkd server", process=="splunkd" AND isnotnull(sid),"search", process=="splunkd" AND (like(args,"fsck%") OR like(args,"recover-metadata%") OR like(args,"cluster_thing")),"index service", process=="splunkd" AND args=="instrument-resource-usage", "scripted input", (like(process,"python%") AND like(args,"%/appserver/mrsparkle/root.py%")) OR like(process,"splunkweb"),"Splunk Web", isnotnull(process_class), process_class) 
+| eval process_class = if(isnull(process_class),"other",process_class) 
+| bin _time span=5m 
+| eval process = 'data.process' 
+| eval args = 'data.args' 
+| eval pid = 'data.pid' 
+| eval ppid = 'data.ppid' 
+| eval elapsed = 'data.elapsed' 
+| eval mem_used = 'data.mem_used' 
+| eval mem = 'data.mem' 
+| eval pct_memory = 'data.pct_memory' 
+| eval normalized_pct_cpu = 'data.normalized_pct_cpu' 
+| eval pct_cpu = 'data.pct_cpu' 
+| eval sid = 'data.search_props.sid' 
+| eval app = 'data.search_props.app' 
+| eval label = 'data.search_props.label' 
+| eval type = 'data.search_props.type' 
+| eval mode = 'data.search_props.mode' 
+| eval user = 'data.search_props.user' 
+| eval role = 'data.search_props.role' 
+| eval label = if(isnotnull('data.search_props.label'), 'data.search_props.label', "") 
+| eval provenance = if(isnotnull('data.search_props.provenance'), 'data.search_props.provenance', "unknown") 
+| eval search_head = case(isnotnull('data.search_props.search_head') AND 'data.search_props.role' == "peer", 'data.search_props.search_head', isnull('data.search_props.search_head') AND 'data.search_props.role' == "head", "_self", isnull('data.search_props.search_head') AND 'data.search_props.role' == "peer", "_unknown") 
+| eval workload_pool = if(isnotnull('data.workload_pool'), 'data.workload_pool', "UNDEFINED") 
+| stats max(normalized_pct_cpu) AS resource_usage_dedup by pid, _time process_class  ```5-min roll up```
+| bin _time span=1d
+| stats  p90(resource_usage_dedup) as p90Daily_5min_max by  _time process_class ```24h Roll up```
+| xyseries _time process_class p90Daily_5min_max</query>
+          <earliest>-30d@d</earliest>
+          <latest>now</latest>
+          <sampleRatio>1</sampleRatio>
+        </search>
+        <option name="charting.axisLabelsX.majorLabelStyle.overflowMode">ellipsisNone</option>
+        <option name="charting.axisLabelsX.majorLabelStyle.rotation">0</option>
+        <option name="charting.axisTitleX.visibility">visible</option>
+        <option name="charting.axisTitleY.visibility">visible</option>
+        <option name="charting.axisTitleY2.visibility">visible</option>
+        <option name="charting.axisX.abbreviation">none</option>
+        <option name="charting.axisX.scale">linear</option>
+        <option name="charting.axisY.abbreviation">none</option>
+        <option name="charting.axisY.scale">linear</option>
+        <option name="charting.axisY2.abbreviation">none</option>
+        <option name="charting.axisY2.enabled">0</option>
+        <option name="charting.axisY2.scale">inherit</option>
+        <option name="charting.chart">column</option>
+        <option name="charting.chart.bubbleMaximumSize">50</option>
+        <option name="charting.chart.bubbleMinimumSize">10</option>
+        <option name="charting.chart.bubbleSizeBy">area</option>
+        <option name="charting.chart.nullValueMode">connect</option>
+        <option name="charting.chart.showDataLabels">none</option>
+        <option name="charting.chart.sliceCollapsingThreshold">0.01</option>
+        <option name="charting.chart.stackMode">stacked</option>
+        <option name="charting.chart.style">shiny</option>
+        <option name="charting.drilldown">none</option>
+        <option name="charting.layout.splitSeries">0</option>
+        <option name="charting.layout.splitSeries.allowIndependentYRanges">0</option>
+        <option name="charting.legend.labelStyle.overflowMode">ellipsisMiddle</option>
+        <option name="charting.legend.mode">standard</option>
+        <option name="charting.legend.placement">right</option>
+        <option name="charting.lineWidth">2</option>
+        <option name="trellis.enabled">0</option>
+        <option name="trellis.scales.shared">1</option>
+        <option name="trellis.size">medium</option>
+      </chart>
+    </panel>
+  </row>
+</form>

@@ -1,5 +1,5 @@
 <form>
-  <label>vCPU Helper - Detailed</label>
+  <label>Archive - vCPU Helper - Detailed</label>
   <description>reference guide to get estimates on current and projected vCPU usage.</description>
   <init>
     <set token="debug">true</set>

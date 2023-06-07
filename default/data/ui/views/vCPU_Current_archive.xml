@@ -1,6 +1,6 @@
 <form version="1.1">
   <!-- <form> -->
-  <label>vCPU Infra Assessment</label>
+  <label>Archive - vCPU Infra Assessment</label>
   <description>Use this as a reference point and starting guide; If you need more clarity, ask your account team to bring in Splunk Architects to discuss further.</description>
   <init>
     <set token="_internal">(index=_internal)</set>
@@ -31,7 +31,6 @@
 This dashboard contains a series of searches that attempt to reverse engineer and size your Splunk infrastructure. It classifies each host to its role, counts the number of CPUs, extracts the software version, measures CPU utilisation, assesses the search load for each component. The output can aid with vCPU pricing and allow the comparision with other instances of Splunk.
         <p/>
 
-<!--
 <h2>Install the dashboard</h2>
 
 <ul>
@@ -50,8 +49,6 @@ The design principal behind the dashboard is to use basic search on the _interna
 <h3>Disclaimer</h3>
 
 All information is provided at your own risk. All data collected is classfied service data as described in <a href="https://www.splunk.com/en_us/legal/privacy/privacy-policy.html">SPLUNK PRIVACY POLICY</a>. Please review the CSV file to determine whether any information is sensitive. This has not been tested on all versions of Splunk and one or more base searches may fail. 
-
--->
   </html>
     </panel>
   </row>
@@ -67,6 +64,7 @@ All information is provided at your own risk. All data collected is classfied se
         <choice value="p95">p95</choice>
         <choice value="p99">p99</choice>
         <choice value="max">max</choice>
+
         <default>p99</default>
       </input>
       <table>
@@ -371,7 +369,6 @@ All information is provided at your own risk. All data collected is classfied se
           <colorPalette type="minMidMax" maxColor="#31A35F" minColor="#FFFFFF"></colorPalette>
           <scale type="minMidMax"></scale>
         </format>
-        <!--
         <format type="number" field="lic_Enterprise_enterprise">
           <option name="precision">0</option>
         </format>
@@ -379,7 +376,6 @@ All information is provided at your own risk. All data collected is classfied se
           <colorPalette type="minMidMax" maxColor="#31A35F" minColor="#FFFFFF"></colorPalette>
           <scale type="minMidMax"></scale>
         </format>
-        -->
         <format type="number" field="search_con_p95">
           <option name="precision">0</option>
         </format>
@@ -512,8 +508,6 @@ $obstification$
             background: linear-gradient( -60deg,#f91cf880,#ee1d62 90%,#f4781f 97%,#f16221 97%,#f05a22 97%,#ee1d62 97%,#ed008082 97%) !important;
             font-family: Verdana;
             font-weight: bolder;
-            
-    color: white;
           }
           .dashboard-row .dashboard-panel .panel-head h3 {
              background: #ffa50012;
