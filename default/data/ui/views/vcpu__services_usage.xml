@@ -1,203 +1,245 @@
 <form version="1.1">
-  <search id="baseSearch">
-    <query>index=_introspection earliest=-30d component=Hostwide
-[|inputlookup dmc_assets
- | table serverName as host, search_group
- | search search_group=*dmc_group_index* OR search_group=*dmc_group_search_head*
- | table host ]
- | eval cpu_util = ('data.cpu_user_pct' + 'data.cpu_system_pct')
-| bin _time span=5m
-| table _time host data.cpu_count data.virtual_cpu_count data.cpu_idle_pct data.cpu_idle_pct cpu_util
-```5-min Roll-Up```
-| stats max(data.cpu_count) AS physical_cores, max(data.virtual_cpu_count) AS numberOfVirtualCores,
-max(cpu_util) as CPU_util_pct_max
-by _time host
-| eval max_5minCPUsUsed = CPU_util_pct_max*numberOfVirtualCores/100
-| stats values(host) as host_list dc(host) as total_hosts sum(physical_cores) as physical_cores sum(numberOfVirtualCores) as numberOfVirtualCores
-sum(max_5minCPUsUsed) as max_5minCPUsUsed
-by _time
-```24h Roll-Up```
-| bin _time span=1d
-| stats values(host_list) as host_list max(total_hosts) as total_hosts max(physical_cores) as physical_cores max(numberOfVirtualCores) as numberOfVirtualCores p90(max_5minCPUsUsed) as p90Daily_5minMax_CPUsUsed by _time
-    </query>
-    <earliest>-24h@h</earliest>
-    <latest>now</latest>
-    <sampleRatio>1</sampleRatio>
-  </search>
   <label>vCPU | Services Usage</label>
-  <description>vCPU</description>
+  <!--  <search id="baseSearch">-->
+  <!--    <query>index=_introspection earliest=-30d component=Hostwide-->
+  <!--[|inputlookup dmc_assets-->
+  <!-- | table serverName as host, search_group-->
+  <!-- | search search_group=*dmc_group_index* OR search_group=*dmc_group_search_head*-->
+  <!-- | table host ]-->
+  <!-- | eval cpu_util = ('data.cpu_user_pct' + 'data.cpu_system_pct')-->
+  <!--| bin _time span=5m-->
+  <!--| table _time host data.cpu_count data.virtual_cpu_count data.cpu_idle_pct data.cpu_idle_pct cpu_util-->
+  <!--```5-min Roll-Up```-->
+  <!--| stats max(data.cpu_count) AS physical_cores, max(data.virtual_cpu_count) AS numberOfVirtualCores,-->
+  <!--max(cpu_util) as CPU_util_pct_max-->
+  <!--by _time host-->
+  <!--| eval max_5minCPUsUsed = CPU_util_pct_max*numberOfVirtualCores/100-->
+  <!--| stats values(host) as host_list dc(host) as total_hosts sum(physical_cores) as physical_cores sum(numberOfVirtualCores) as numberOfVirtualCores-->
+  <!--sum(max_5minCPUsUsed) as max_5minCPUsUsed-->
+  <!--by _time-->
+  <!--```24h Roll-Up```-->
+  <!--| bin _time span=1d-->
+  <!--| stats values(host_list) as host_list max(total_hosts) as total_hosts max(physical_cores) as physical_cores max(numberOfVirtualCores) as numberOfVirtualCores p90(max_5minCPUsUsed) as p90Daily_5minMax_CPUsUsed by _time-->
+  <!--    </query>-->
+  <!--    <earliest>-24h@h</earliest>-->
+  <!--    <latest>now</latest>-->
+  <!--    <sampleRatio>1</sampleRatio>-->
+  <!--  </search>-->
+  <!--  <description>vCPU</description>-->
+  <!--  <fieldset submitButton="false">-->
+  <!--    <input type="dropdown" token="pspan" searchWhenChanged="true">-->
+  <!--      <label>Pick Predictive Span - 30,60,90</label>-->
+  <!--      <choice value="1">1</choice>-->
+  <!--      <choice value="5">5</choice>-->
+  <!--      <choice value="10">10</choice>-->
+  <!--      <choice value="15">15</choice>-->
+  <!--      <choice value="20">20</choice>-->
+  <!--      <choice value="25">25</choice>-->
+  <!--      <choice value="30">30</choice>-->
+  <!--      <choice value="100">100</choice>-->
+  <!--      <initialValue>5</initialValue>-->
+  <!--      <default>5</default>-->
+  <!--    </input>-->
+  <!--    <input type="dropdown" token="field1">-->
+  <!--      <label>Time Range</label>-->
+  <!--      <choice value="30d">30</choice>-->
+  <!--      <choice value="60d">60</choice>-->
+  <!--      <choice value="90d">90</choice>-->
+  <!--      <default>30d</default>-->
+  <!--    </input>-->
+  <!--  </fieldset>-->
+  <!--  <row>-->
+  <!--    <panel>-->
+  <!--      <title>vCPU Usage Overview</title>-->
+  <!--      <chart>-->
+  <!--        <search>-->
+  <!--          <query>index=`vcpu_index` source=vcpu_usage_overview_$field1$_ earliest=-$field1$-->
+  <!--| dedup _time | table _time p90Daily_5minMax_CPUsUsed | sort _time -->
+  <!--| predict future_timespan=$pspan$ p90Daily_5minMax_CPUsUsed</query>-->
+  <!--          <earliest>0</earliest>-->
+  <!--          <latest></latest>-->
+  <!--          <sampleRatio>1</sampleRatio>-->
+  <!--        </search>-->
+  <!--        <option name="charting.axisLabelsX.majorLabelStyle.overflowMode">ellipsisNone</option>-->
+  <!--        <option name="charting.axisLabelsX.majorLabelStyle.rotation">0</option>-->
+  <!--        <option name="charting.axisTitleX.visibility">visible</option>-->
+  <!--        <option name="charting.axisTitleY.visibility">visible</option>-->
+  <!--        <option name="charting.axisTitleY2.visibility">visible</option>-->
+  <!--        <option name="charting.axisX.abbreviation">none</option>-->
+  <!--        <option name="charting.axisX.scale">linear</option>-->
+  <!--        <option name="charting.axisY.abbreviation">none</option>-->
+  <!--        <option name="charting.axisY.minimumNumber">0</option>-->
+  <!--        <option name="charting.axisY.scale">linear</option>-->
+  <!--        <option name="charting.axisY2.abbreviation">none</option>-->
+  <!--        <option name="charting.axisY2.enabled">0</option>-->
+  <!--        <option name="charting.axisY2.scale">inherit</option>-->
+  <!--        <option name="charting.chart">column</option>-->
+  <!--        <option name="charting.chart.bubbleMaximumSize">50</option>-->
+  <!--        <option name="charting.chart.bubbleMinimumSize">10</option>-->
+  <!--        <option name="charting.chart.bubbleSizeBy">area</option>-->
+  <!--        <option name="charting.chart.nullValueMode">gaps</option>-->
+  <!--        <option name="charting.chart.showDataLabels">none</option>-->
+  <!--        <option name="charting.chart.sliceCollapsingThreshold">0.01</option>-->
+  <!--        <option name="charting.chart.stackMode">default</option>-->
+  <!--        <option name="charting.chart.style">shiny</option>-->
+  <!--        <option name="charting.drilldown">none</option>-->
+  <!--        <option name="charting.layout.splitSeries">0</option>-->
+  <!--        <option name="charting.layout.splitSeries.allowIndependentYRanges">0</option>-->
+  <!--        <option name="charting.legend.labelStyle.overflowMode">ellipsisMiddle</option>-->
+  <!--        <option name="charting.legend.mode">standard</option>-->
+  <!--        <option name="charting.legend.placement">bottom</option>-->
+  <!--        <option name="charting.lineWidth">2</option>-->
+  <!--        <option name="refresh.display">progressbar</option>-->
+  <!--        <option name="trellis.enabled">0</option>-->
+  <!--        <option name="trellis.scales.shared">1</option>-->
+  <!--        <option name="trellis.size">medium</option>-->
+  <!--      </chart>-->
+  <!--    </panel>-->
+  <!--  </row>-->
+  <!--  <row>-->
+  <!--    <panel>-->
+  <!--      <title>Services Usage over Days</title>-->
+  <!--      <chart>-->
+  <!--        <search>-->
+  <!--          <query>index=`vcpu_index` source=services_usage_over_days_ process_class=* earliest=-7d-->
+  <!--| table _time, process_class, p90Daily_5min_max-->
+  <!--| dedup _time, process_class-->
+  <!--| xyseries _time process_class p90Daily_5min_max</query>-->
+  <!--          <earliest>-30d@d</earliest>-->
+  <!--          <latest>now</latest>-->
+  <!--          <sampleRatio>1</sampleRatio>-->
+  <!--        </search>-->
+  <!--        <option name="charting.axisLabelsX.majorLabelStyle.overflowMode">ellipsisNone</option>-->
+  <!--        <option name="charting.axisLabelsX.majorLabelStyle.rotation">0</option>-->
+  <!--        <option name="charting.axisTitleX.visibility">visible</option>-->
+  <!--        <option name="charting.axisTitleY.visibility">visible</option>-->
+  <!--        <option name="charting.axisTitleY2.visibility">visible</option>-->
+  <!--        <option name="charting.axisX.abbreviation">none</option>-->
+  <!--        <option name="charting.axisX.scale">linear</option>-->
+  <!--        <option name="charting.axisY.abbreviation">none</option>-->
+  <!--        <option name="charting.axisY.scale">linear</option>-->
+  <!--        <option name="charting.axisY2.abbreviation">none</option>-->
+  <!--        <option name="charting.axisY2.enabled">0</option>-->
+  <!--        <option name="charting.axisY2.scale">inherit</option>-->
+  <!--        <option name="charting.chart">line</option>-->
+  <!--        <option name="charting.chart.bubbleMaximumSize">50</option>-->
+  <!--        <option name="charting.chart.bubbleMinimumSize">10</option>-->
+  <!--        <option name="charting.chart.bubbleSizeBy">area</option>-->
+  <!--        <option name="charting.chart.nullValueMode">connect</option>-->
+  <!--        <option name="charting.chart.showDataLabels">none</option>-->
+  <!--        <option name="charting.chart.sliceCollapsingThreshold">0.01</option>-->
+  <!--        <option name="charting.chart.stackMode">stacked</option>-->
+  <!--        <option name="charting.chart.style">shiny</option>-->
+  <!--        <option name="charting.drilldown">all</option>-->
+  <!--        <option name="charting.layout.splitSeries">0</option>-->
+  <!--        <option name="charting.layout.splitSeries.allowIndependentYRanges">0</option>-->
+  <!--        <option name="charting.legend.labelStyle.overflowMode">ellipsisMiddle</option>-->
+  <!--        <option name="charting.legend.mode">standard</option>-->
+  <!--        <option name="charting.legend.placement">right</option>-->
+  <!--        <option name="charting.lineWidth">2</option>-->
+  <!--        <option name="refresh.display">progressbar</option>-->
+  <!--        <option name="trellis.enabled">0</option>-->
+  <!--        <option name="trellis.scales.shared">1</option>-->
+  <!--        <option name="trellis.size">medium</option>-->
+  <!--        <drilldown>-->
+  <!--          <set token="show_panel">true</set>-->
+  <!--          <set token="selected_process_class">"$click.name2$"</set>-->
+  <!--          <set token="selected_earliest">$earliest$</set>-->
+  <!--          <set token="selected_latest">$earliest$</set>-->
+  <!--        </drilldown>-->
+  <!--      </chart>-->
+  <!--    </panel>-->
+  <!--  </row>-->
+  <!--  <row>-->
+  <!--    <panel depends="$show_panel$">-->
+  <!--      <title>Services Usage per Hour</title>-->
+  <!--      <chart>-->
+  <!--        <search>-->
+  <!--          <query>index=`vcpu_index` source=services_usage_over_hours_ process_class=$selected_process_class$ -->
+  <!--| eval earliest=tonumber($selected_earliest$), latest=tonumber($selected_latest$+86400)-->
+  <!--| where _time&gt;=earliest AND _time&lt;latest-->
+  <!--| table _time, process_class, p90Daily_5min_max-->
+  <!--| dedup _time, process_class-->
+  <!--| xyseries _time process_class p90Daily_5min_max</query>-->
+  <!--          <earliest>$earliest$</earliest>-->
+  <!--          <latest>$latest$</latest>-->
+  <!--          <sampleRatio>1</sampleRatio>-->
+  <!--        </search>-->
+  <!--        <option name="charting.axisLabelsX.majorLabelStyle.overflowMode">ellipsisNone</option>-->
+  <!--        <option name="charting.axisLabelsX.majorLabelStyle.rotation">0</option>-->
+  <!--        <option name="charting.axisTitleX.visibility">visible</option>-->
+  <!--        <option name="charting.axisTitleY.visibility">visible</option>-->
+  <!--        <option name="charting.axisTitleY2.visibility">visible</option>-->
+  <!--        <option name="charting.axisX.abbreviation">none</option>-->
+  <!--        <option name="charting.axisX.scale">linear</option>-->
+  <!--        <option name="charting.axisY.abbreviation">none</option>-->
+  <!--        <option name="charting.axisY.scale">linear</option>-->
+  <!--        <option name="charting.axisY2.abbreviation">none</option>-->
+  <!--        <option name="charting.axisY2.enabled">0</option>-->
+  <!--        <option name="charting.axisY2.scale">inherit</option>-->
+  <!--        <option name="charting.chart">line</option>-->
+  <!--        <option name="charting.chart.bubbleMaximumSize">50</option>-->
+  <!--        <option name="charting.chart.bubbleMinimumSize">10</option>-->
+  <!--        <option name="charting.chart.bubbleSizeBy">area</option>-->
+  <!--        <option name="charting.chart.nullValueMode">gaps</option>-->
+  <!--        <option name="charting.chart.showDataLabels">all</option>-->
+  <!--        <option name="charting.chart.sliceCollapsingThreshold">0.01</option>-->
+  <!--        <option name="charting.chart.stackMode">default</option>-->
+  <!--        <option name="charting.chart.style">shiny</option>-->
+  <!--        <option name="charting.drilldown">none</option>-->
+  <!--        <option name="charting.layout.splitSeries">0</option>-->
+  <!--        <option name="charting.layout.splitSeries.allowIndependentYRanges">0</option>-->
+  <!--        <option name="charting.legend.labelStyle.overflowMode">ellipsisMiddle</option>-->
+  <!--        <option name="charting.legend.mode">standard</option>-->
+  <!--        <option name="charting.legend.placement">right</option>-->
+  <!--        <option name="charting.lineWidth">2</option>-->
+  <!--        <option name="refresh.display">progressbar</option>-->
+  <!--        <option name="trellis.enabled">0</option>-->
+  <!--        <option name="trellis.scales.shared">1</option>-->
+  <!--        <option name="trellis.size">medium</option>-->
+  <!--      </chart>-->
+  <!--    </panel>-->
+  <!--  </row>-->
   <fieldset submitButton="false">
-    <input type="dropdown" token="pspan" searchWhenChanged="true">
-      <label>Pick Predictive Span - 30,60,90</label>
-      <choice value="1">1</choice>
-      <choice value="5">5</choice>
-      <choice value="10">10</choice>
-      <choice value="15">15</choice>
-      <choice value="20">20</choice>
-      <choice value="25">25</choice>
-      <choice value="30">30</choice>
-      <choice value="100">100</choice>
-      <initialValue>5</initialValue>
-      <default>5</default>
-    </input>
-    <input type="dropdown" token="field1">
-      <label>Time Range</label>
-      <choice value="30d">30</choice>
-      <choice value="60d">60</choice>
-      <choice value="90d">90</choice>
-      <default>30d</default>
+    <input type="text" token="filter" searchWhenChanged="true">
+      <label>Filter String</label>
     </input>
   </fieldset>
   <row>
     <panel>
-      <title>vCPU Usage Overview</title>
-      <chart>
+      <table>
         <search>
-          <query>index=`vcpu_index` source=vcpu_usage_overview_$field1$_ earliest=-$field1$
-| dedup _time | table _time p90Daily_5minMax_CPUsUsed | sort _time 
-| predict future_timespan=$pspan$ p90Daily_5minMax_CPUsUsed</query>
-          <earliest>0</earliest>
-          <latest></latest>
-          <sampleRatio>1</sampleRatio>
-        </search>
-        <option name="charting.axisLabelsX.majorLabelStyle.overflowMode">ellipsisNone</option>
-        <option name="charting.axisLabelsX.majorLabelStyle.rotation">0</option>
-        <option name="charting.axisTitleX.visibility">visible</option>
-        <option name="charting.axisTitleY.visibility">visible</option>
-        <option name="charting.axisTitleY2.visibility">visible</option>
-        <option name="charting.axisX.abbreviation">none</option>
-        <option name="charting.axisX.scale">linear</option>
-        <option name="charting.axisY.abbreviation">none</option>
-        <option name="charting.axisY.minimumNumber">0</option>
-        <option name="charting.axisY.scale">linear</option>
-        <option name="charting.axisY2.abbreviation">none</option>
-        <option name="charting.axisY2.enabled">0</option>
-        <option name="charting.axisY2.scale">inherit</option>
-        <option name="charting.chart">column</option>
-        <option name="charting.chart.bubbleMaximumSize">50</option>
-        <option name="charting.chart.bubbleMinimumSize">10</option>
-        <option name="charting.chart.bubbleSizeBy">area</option>
-        <option name="charting.chart.nullValueMode">gaps</option>
-        <option name="charting.chart.showDataLabels">none</option>
-        <option name="charting.chart.sliceCollapsingThreshold">0.01</option>
-        <option name="charting.chart.stackMode">default</option>
-        <option name="charting.chart.style">shiny</option>
-        <option name="charting.drilldown">none</option>
-        <option name="charting.layout.splitSeries">0</option>
-        <option name="charting.layout.splitSeries.allowIndependentYRanges">0</option>
-        <option name="charting.legend.labelStyle.overflowMode">ellipsisMiddle</option>
-        <option name="charting.legend.mode">standard</option>
-        <option name="charting.legend.placement">bottom</option>
-        <option name="charting.lineWidth">2</option>
-        <option name="refresh.display">progressbar</option>
-        <option name="trellis.enabled">0</option>
-        <option name="trellis.scales.shared">1</option>
-        <option name="trellis.size">medium</option>
-      </chart>
-    </panel>
-  </row>
-  <row>
-    <panel>
-      <title>Services Usage over Days</title>
-      <chart>
-        <search>
-          <query>index=`vcpu_index` source=services_usage_over_days_ process_class=* earliest=-7d
-| table _time, process_class, p90Daily_5min_max
-| dedup _time, process_class
-| xyseries _time process_class p90Daily_5min_max</query>
-          <earliest>-30d@d</earliest>
+          <query>index=_introspection $filter$ earliest=-1d@d latest=now component=Hostwide 
+    [| inputlookup dmc_assets 
+    | table serverName as host, search_group 
+    | search search_group=*dmc_group_index* OR search_group=*dmc_group_search_head* 
+    | table host ] 
+    ```| search NOT host=agit-spind*```
+| eval cpu_util = ('data.cpu_user_pct' + 'data.cpu_system_pct') 
+| bin _time span=5m 
+  | table time host data.cpucount data.virtual_cpu_count data.cpu_idle_pct data.cpu_idle_pct cpu_util
+| stats max(data.cpu_count) AS physical_cores, max(data.virtual_cpu_count) AS numberOfVirtualCores,
+    max(cpu_util) as CPU_util_pct_max by _time host 
+| eval max_5minCPUsUsed = CPU_util_pct_max*numberOfVirtualCores/100 
+| stats ```values(host) as host_list dc(host) as total_hosts sum(physical_cores) as physical_cores sum(numberOfVirtualCores) as numberOfVirtualCores```
+    sum(max_5minCPUsUsed) as max_5minCPUsUsed
+    by _time 
+```| bin _time span=1d 
+| stats p90(max_5minCPUsUsed) as p90Daily_5minMax_CPUsUsed by _time 
+| eval p90Daily_5minMax_CPUsUsed=round(p90Daily_5minMax_CPUsUsed,2)```</query>
+          <earliest>-24h@h</earliest>
           <latest>now</latest>
           <sampleRatio>1</sampleRatio>
         </search>
-        <option name="charting.axisLabelsX.majorLabelStyle.overflowMode">ellipsisNone</option>
-        <option name="charting.axisLabelsX.majorLabelStyle.rotation">0</option>
-        <option name="charting.axisTitleX.visibility">visible</option>
-        <option name="charting.axisTitleY.visibility">visible</option>
-        <option name="charting.axisTitleY2.visibility">visible</option>
-        <option name="charting.axisX.abbreviation">none</option>
-        <option name="charting.axisX.scale">linear</option>
-        <option name="charting.axisY.abbreviation">none</option>
-        <option name="charting.axisY.scale">linear</option>
-        <option name="charting.axisY2.abbreviation">none</option>
-        <option name="charting.axisY2.enabled">0</option>
-        <option name="charting.axisY2.scale">inherit</option>
-        <option name="charting.chart">line</option>
-        <option name="charting.chart.bubbleMaximumSize">50</option>
-        <option name="charting.chart.bubbleMinimumSize">10</option>
-        <option name="charting.chart.bubbleSizeBy">area</option>
-        <option name="charting.chart.nullValueMode">connect</option>
-        <option name="charting.chart.showDataLabels">none</option>
-        <option name="charting.chart.sliceCollapsingThreshold">0.01</option>
-        <option name="charting.chart.stackMode">stacked</option>
-        <option name="charting.chart.style">shiny</option>
-        <option name="charting.drilldown">all</option>
-        <option name="charting.layout.splitSeries">0</option>
-        <option name="charting.layout.splitSeries.allowIndependentYRanges">0</option>
-        <option name="charting.legend.labelStyle.overflowMode">ellipsisMiddle</option>
-        <option name="charting.legend.mode">standard</option>
-        <option name="charting.legend.placement">right</option>
-        <option name="charting.lineWidth">2</option>
+        <option name="count">20</option>
+        <option name="dataOverlayMode">none</option>
+        <option name="drilldown">none</option>
+        <option name="percentagesRow">false</option>
         <option name="refresh.display">progressbar</option>
-        <option name="trellis.enabled">0</option>
-        <option name="trellis.scales.shared">1</option>
-        <option name="trellis.size">medium</option>
-        <drilldown>
-          <set token="show_panel">true</set>
-          <set token="selected_process_class">"$click.name2$"</set>
-          <set token="selected_earliest">$earliest$</set>
-          <set token="selected_latest">$earliest$</set>
-        </drilldown>
-      </chart>
-    </panel>
-  </row>
-  <row>
-    <panel depends="$show_panel$">
-      <title>Services Usage per Hour</title>
-      <chart>
-        <search>
-          <query>index=`vcpu_index` source=services_usage_over_hours_ process_class=$selected_process_class$ 
-| eval earliest=tonumber($selected_earliest$), latest=tonumber($selected_latest$+86400)
-| where _time&gt;=earliest AND _time&lt;latest
-| table _time, process_class, p90Daily_5min_max
-| dedup _time, process_class
-| xyseries _time process_class p90Daily_5min_max</query>
-          <earliest>$earliest$</earliest>
-          <latest>$latest$</latest>
-          <sampleRatio>1</sampleRatio>
-        </search>
-        <option name="charting.axisLabelsX.majorLabelStyle.overflowMode">ellipsisNone</option>
-        <option name="charting.axisLabelsX.majorLabelStyle.rotation">0</option>
-        <option name="charting.axisTitleX.visibility">visible</option>
-        <option name="charting.axisTitleY.visibility">visible</option>
-        <option name="charting.axisTitleY2.visibility">visible</option>
-        <option name="charting.axisX.abbreviation">none</option>
-        <option name="charting.axisX.scale">linear</option>
-        <option name="charting.axisY.abbreviation">none</option>
-        <option name="charting.axisY.scale">linear</option>
-        <option name="charting.axisY2.abbreviation">none</option>
-        <option name="charting.axisY2.enabled">0</option>
-        <option name="charting.axisY2.scale">inherit</option>
-        <option name="charting.chart">line</option>
-        <option name="charting.chart.bubbleMaximumSize">50</option>
-        <option name="charting.chart.bubbleMinimumSize">10</option>
-        <option name="charting.chart.bubbleSizeBy">area</option>
-        <option name="charting.chart.nullValueMode">gaps</option>
-        <option name="charting.chart.showDataLabels">all</option>
-        <option name="charting.chart.sliceCollapsingThreshold">0.01</option>
-        <option name="charting.chart.stackMode">default</option>
-        <option name="charting.chart.style">shiny</option>
-        <option name="charting.drilldown">none</option>
-        <option name="charting.layout.splitSeries">0</option>
-        <option name="charting.layout.splitSeries.allowIndependentYRanges">0</option>
-        <option name="charting.legend.labelStyle.overflowMode">ellipsisMiddle</option>
-        <option name="charting.legend.mode">standard</option>
-        <option name="charting.legend.placement">right</option>
-        <option name="charting.lineWidth">2</option>
-        <option name="refresh.display">progressbar</option>
-        <option name="trellis.enabled">0</option>
-        <option name="trellis.scales.shared">1</option>
-        <option name="trellis.size">medium</option>
-      </chart>
+        <option name="rowNumbers">false</option>
+        <option name="totalsRow">false</option>
+        <option name="wrap">true</option>
+      </table>
     </panel>
   </row>
 </form>
