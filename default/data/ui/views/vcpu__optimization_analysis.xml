@@ -1,0 +1,167 @@
+<form version="1.1" theme="dark">
+  <label>vCPU | Optimization Analysis</label>
+  <fieldset submitButton="false">
+    <input type="time" token="time_tok">
+      <label>Time Picker</label>
+      <default>
+        <earliest>-24h@h</earliest>
+        <latest>now</latest>
+      </default>
+    </input>
+    <input type="dropdown" token="host_tok">
+      <label>Host</label>
+      <fieldForLabel>host</fieldForLabel>
+      <fieldForValue>host</fieldForValue>
+      <search>
+        <query>| inputlookup dmc_assets
+| search search_group=*dmc_group_index* OR search_group=*dmc_group_search_head*
+| table host 
+| dedup host</query>
+        <earliest>-24h@h</earliest>
+        <latest>now</latest>
+      </search>
+    </input>
+  </fieldset>
+  <row>
+    <panel>
+      <title>Max CPU Used VS P90 CPU Used over 5min Windows</title>
+      <chart>
+        <search>
+          <!--          <query>index=_introspection component=Hostwide-->
+          <!--[| inputlookup dmc_assets-->
+          <!-- | search search_group=*dmc_group_index* OR search_group=*dmc_group_search_head*-->
+          <!-- | table host ]-->
+          <!-- | eval cpu_util = ('data.cpu_user_pct' + 'data.cpu_system_pct')-->
+          <!--| bin _time span=5m-->
+          <!--| table _time host data.cpu_count data.virtual_cpu_count data.cpu_idle_pct data.cpu_idle_pct cpu_util-->
+          <!--```5-min Roll-Up```-->
+          <!--| stats max(data.cpu_count) AS physical_cores, max(data.virtual_cpu_count) AS numberOfVirtualCores,-->
+          <!--max(cpu_util) as CPU_util_pct_max, p90(cpu_util) as CPU_util_pct_p90-->
+          <!--by _time host-->
+          <!--| eval max_5minCPUsUsed = CPU_util_pct_max*numberOfVirtualCores/100, p90_5minCPUsUsed = CPU_util_pct_p90*numberOfVirtualCores/100-->
+          <!--``` Do we need to do sum here? why?```-->
+          <!--```| stats values(host) as host_list dc(host) as total_hosts sum(physical_cores) as physical_cores sum(numberOfVirtualCores) as numberOfVirtualCores-->
+          <!--sum(max_5minCPUsUsed) as max_5minCPUsUsed sum(p90_5minCPUsUsed) as p90_5minCPUsUsed -->
+          <!--by _time```-->
+          <!--| where host=="$host_tok$"-->
+          <!--| table _time, max_5minCPUsUsed, p90_5minCPUsUsed</query>-->
+          <query>index=`vcpu_index` source=opt_analysis_
+| where host=="$host_tok$"
+| table _time, max_5minCPUsUsed, p90_5minCPUsUsed</query>
+          <earliest>-24h@h</earliest>
+          <latest>now</latest>
+          <sampleRatio>1</sampleRatio>
+        </search>
+        <option name="charting.axisLabelsX.majorLabelStyle.overflowMode">ellipsisNone</option>
+        <option name="charting.axisLabelsX.majorLabelStyle.rotation">0</option>
+        <option name="charting.axisTitleX.visibility">visible</option>
+        <option name="charting.axisTitleY.visibility">visible</option>
+        <option name="charting.axisTitleY2.visibility">visible</option>
+        <option name="charting.axisX.abbreviation">none</option>
+        <option name="charting.axisX.scale">linear</option>
+        <option name="charting.axisY.abbreviation">none</option>
+        <option name="charting.axisY.scale">linear</option>
+        <option name="charting.axisY2.abbreviation">none</option>
+        <option name="charting.axisY2.enabled">0</option>
+        <option name="charting.axisY2.scale">inherit</option>
+        <option name="charting.chart">line</option>
+        <option name="charting.chart.bubbleMaximumSize">50</option>
+        <option name="charting.chart.bubbleMinimumSize">10</option>
+        <option name="charting.chart.bubbleSizeBy">area</option>
+        <option name="charting.chart.nullValueMode">gaps</option>
+        <option name="charting.chart.showDataLabels">none</option>
+        <option name="charting.chart.sliceCollapsingThreshold">0.01</option>
+        <option name="charting.chart.stackMode">default</option>
+        <option name="charting.chart.style">shiny</option>
+        <option name="charting.drilldown">all</option>
+        <option name="charting.layout.splitSeries">0</option>
+        <option name="charting.layout.splitSeries.allowIndependentYRanges">0</option>
+        <option name="charting.legend.labelStyle.overflowMode">ellipsisMiddle</option>
+        <option name="charting.legend.mode">standard</option>
+        <option name="charting.legend.placement">right</option>
+        <option name="charting.lineWidth">2</option>
+        <option name="refresh.display">progressbar</option>
+        <option name="trellis.enabled">0</option>
+        <option name="trellis.scales.shared">1</option>
+        <option name="trellis.size">medium</option>
+        <drilldown>
+          <set token="selected_earliest">$earliest$</set>
+          <set token="show_panel">true</set>
+          <eval token="selected_latest">$earliest$+300</eval>
+        </drilldown>
+      </chart>
+    </panel>
+  </row>
+  <row>
+    <panel depends="$show_panel$">
+      <title>Max CPU Used VS P90 CPU Used over 1min Windows</title>
+      <chart>
+        <search>
+          <query>| search index=_introspection component=Hostwide earliest=$selected_earliest$ latest=$selected_latest$
+| eval cpu_util = ('data.cpu_user_pct' + 'data.cpu_system_pct')
+| bin _time span=1m
+| table _time host data.cpu_count data.virtual_cpu_count data.cpu_idle_pct data.cpu_idle_pct cpu_util
+1-min Roll-Up
+| stats max(data.cpu_count) AS physical_cores, max(data.virtual_cpu_count) AS numberOfVirtualCores,
+max(cpu_util) as CPU_util_pct_max, p90(cpu_util) as CPU_util_pct_p90
+by _time host
+| eval max_1minCPUsUsed = CPU_util_pct_max*numberOfVirtualCores/100, p90_1minCPUsUsed = CPU_util_pct_p90*numberOfVirtualCores/100
+| where host=="$host_tok$"
+| table _time, max_1minCPUsUsed, p90_1minCPUsUsed</query>
+          <earliest>$earliest$</earliest>
+          <latest>$latest$</latest>
+          <sampleRatio>1</sampleRatio>
+        </search>
+        <option name="charting.chart">line</option>
+        <option name="charting.drilldown">none</option>
+        <option name="refresh.display">progressbar</option>
+      </chart>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <html>
+        <div>
+          <h1>Interpretation of comparison of CPU p90 and CPU max</h1>
+          <p>The more optimized your environment the closer the CPU p90 and max should be. If there is a large difference between those two metrics, it's an indication that there is room for optimization in your environment. The 5 minute window view can help you identify the windows of time that are high and are contributing to your daily cpu max vCPU. Use the 1 minute window to identify spikes that might be within the 5 minute windows. If there are spikes in the 5 minute windows, it's good to try to analyze your system to figure out what is causing those spikes. This is typically scheduled searches that spike in a minute of a 5 minute window. See optimization techniques below to address these spikes.</p>
+          <h1>Optimization Techniques:</h1>
+          <ol>
+            <b>
+              <li>Implement <a href="https://docs.splunk.com/Documentation/Splunk/9.1.0/Admin/Savedsearchesconf#Scheduling_options">Schedule Windows</a> for all normal users:</li>
+            </b>
+              <p>This is a best practice to help reduce the number of skipped searches.  It allows the scheduler to consider the historical runtime of a search, and its interval to create a window the search can run in.  Its primary use is to reduce skipped searches, but combined with controlling the total number of allowed searches it can help spread search out.</p>
+
+              <U>
+              <b>Description:</b>
+            </U>
+              <p>When 'schedule_window' is non-zero, it indicates to the scheduler that the search does not require a precise start time. This gives the scheduler greater flexibility when it prioritizes searches.</p>
+              <p>When 'schedule_window' is set to an integer greater than 0, it specifies the "window" of time (in minutes) that a search may start within.</p>
+              <p>The 'schedule_window' must be shorter than the period of the search.</p>
+              <p>Schedule windows are not recommended for searches that run every minute</p>
+              <p>When set to 0, there is no schedule window. The scheduler starts the search as close to its scheduled time as possible.</p>
+              <p>When set to "auto," the scheduler calculates the 'schedule_window' value automatically.</p>
+              
+              <U>
+              <b>How to implement:</b>
+            </U>
+              <p>The easiest way to implement this is probably to remove the <a href="https://docs.splunk.com/Documentation/SplunkCloud/9.0.2305/Security/Rolesandcapabilities#Add.2C_edit.2C_and_remove_capabilities_from_roles">edit_search_schedule_window</a> from most of your user roles.  This will set the default value of schedule_window to auto for most users.</p>
+              
+            <b>
+              <li>Remove the ability to schedule a report at anything but default priority</li>
+            </b>
+              <p>By default all users have the <a href="https://docs.splunk.com/Documentation/Splunk/9.1.0/Admin/Savedsearchesconf#Scheduling_options">edit_search_schedule_priority</a>. This allows them to schedule searches as higher or highest priority, removing the ability of the scheduler to use a search window to flex a search.</p>
+              <p>Most users should not have the ability to increase the priority of their scheduled search.</p>
+              
+            <b>
+              <li>For searches clustered at 00, 05, etc consider setting <a href="https://docs.splunk.com/Documentation/Splunk/9.1.0/Admin/Savedsearchesconf#Scheduling_options">allow_skew</a>
+              </li>
+            </b>
+              <p>Lets the search scheduler randomly distribute scheduled searches more evenly over the scheduled time periods.</p>
+              <p>Skew can not be set from the command line, but could help with long running searches</p>
+              <p>There is a <a href="https://www.splunk.com/en_us/blog/platform/schedule-windows-vs-skewing.html">.Conf 17 presentation</a> that may help explain skew.</p>
+          </ol>
+        </div>
+      </html>
+    </panel>
+  </row>
+</form>

@@ -1,6 +1,7 @@
 <nav search_view="search" color="#5CC05C">
     <view name="vcpu_audit_dashboard__prod" default='true'/>
-     <view name="vcpu__services_usage" default='true'/>
+    <view name="vcpu__services_usage" />
+    <view name="vcpu__optimization_analysis" />
     <view name="dashboards" />
     <view name="reports" />
     <view name="search" />
