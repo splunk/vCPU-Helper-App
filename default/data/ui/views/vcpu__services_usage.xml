@@ -1,4 +1,4 @@
-<form version="1.1">
+<form version="1.1" theme="dark">
   <label>vCPU | Services Usage</label>
   <!--  <search id="baseSearch">-->
   <!--    <query>index=_introspection earliest=-30d component=Hostwide-->
@@ -203,6 +203,8 @@
   <fieldset submitButton="false">
     <input type="text" token="filter" searchWhenChanged="true">
       <label>Filter String</label>
+      <default></default>
+      <initialValue>""</initialValue>
     </input>
   </fieldset>
   <row>
